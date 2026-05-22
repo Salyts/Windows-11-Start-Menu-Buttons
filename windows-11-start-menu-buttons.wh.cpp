@@ -10,7 +10,7 @@
 // @include       StartMenuExperienceHost.exe
 // @include       explorer.exe
 // @architecture  x86-64
-// @compilerOptions -lcomctl32 -lole32 -loleaut32 -lruntimeobject -lshlwapi -lshell32 -luuid -luser32 -lwtsapi32 -lpowrprof -lgdi32 -lgdiplus
+// @compilerOptions -lcomctl32 -lole32 -loleaut32 -lruntimeobject -lshlwapi -lshell32 -luuid -luser32 -lwtsapi32 -lpowrprof -lgdi32 -lgdiplus -lshcore -lcrypt32
 // ==/WindhawkMod==
 
 // ==WindhawkModReadme==
@@ -225,6 +225,8 @@ Thank you so much, [@SharkIT-sys](https://github.com/SharkIT-sys), for helping t
 #include <powrprof.h>
 #include <shellapi.h>
 #include <shlwapi.h>
+#include <shcore.h>
+#include <wincrypt.h>
 
 #undef GetCurrentTime
 
@@ -239,6 +241,8 @@ Thank you so much, [@SharkIT-sys](https://github.com/SharkIT-sys), for helping t
 #include <winrt/Windows.UI.Xaml.Controls.Primitives.h>
 #include <winrt/Windows.UI.Xaml.Media.h>
 #include <winrt/Windows.UI.Xaml.Media.Imaging.h>
+#include <winrt/Windows.Storage.h>
+#include <winrt/Windows.Storage.Streams.h>
 
 #pragma comment(lib, "gdiplus.lib")
 #include <gdiplus.h>
@@ -249,6 +253,7 @@ namespace wuxc = winrt::Windows::UI::Xaml::Controls;
 namespace wuxm = winrt::Windows::UI::Xaml::Media;
 namespace wuxmi = winrt::Windows::UI::Xaml::Media::Imaging;
 namespace wuc  = winrt::Windows::UI::Core;
+namespace wss  = winrt::Windows::Storage::Streams;
 
 static const wchar_t* CONTAINER_TAG      = L"WH_SMB_Container";
 static const wchar_t* PROXY_WINDOW_CLASS = L"WH_SMB_Proxy_Class";
@@ -449,6 +454,175 @@ static HICON LoadIconFromExe(const std::wstring& path, int size) {
     }
 }
 
+static std::wstring CreateDataUriFromIcon(HICON hIcon) {
+    if (!hIcon) return L"";
+
+    ICONINFO info{};
+    if (!GetIconInfo(hIcon, &info)) return L"";
+
+    struct BitmapGuard {
+        HBITMAP color, mask;
+        ~BitmapGuard() {
+            if (color) DeleteObject(color);
+            if (mask)  DeleteObject(mask);
+        }
+    } bmpGuard{ info.hbmColor, info.hbmMask };
+
+    BITMAP bm{};
+    GetObject(info.hbmColor ? info.hbmColor : info.hbmMask, sizeof(bm), &bm);
+
+    HDC screenDC = GetDC(nullptr);
+    HDC memDC    = CreateCompatibleDC(screenDC);
+
+    BITMAPINFO bmi{};
+    bmi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth       = bm.bmWidth;
+    bmi.bmiHeader.biHeight      = -bm.bmHeight;
+    bmi.bmiHeader.biPlanes      = 1;
+    bmi.bmiHeader.biBitCount    = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    void* bits = nullptr;
+    HBITMAP dib = CreateDIBSection(screenDC, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
+
+    std::wstring result;
+    if (dib && bits) {
+        HBITMAP oldBmp = static_cast<HBITMAP>(SelectObject(memDC, dib));
+        DrawIconEx(memDC, 0, 0, hIcon, bm.bmWidth, bm.bmHeight, 0, nullptr, DI_NORMAL);
+        SelectObject(memDC, oldBmp);
+
+        try {
+            wss::InMemoryRandomAccessStream stream;
+            EnsureGdiplus();
+
+            Gdiplus::Bitmap srcBmp(bm.bmWidth, bm.bmHeight, bm.bmWidth * 4,
+                                   PixelFormat32bppARGB, static_cast<BYTE*>(bits));
+
+            if (srcBmp.GetLastStatus() == Gdiplus::Ok) {
+                IStream* pStream = nullptr;
+                if (SUCCEEDED(CreateStreamOverRandomAccessStream(
+                    winrt::get_unknown(stream), IID_PPV_ARGS(&pStream)))) {
+
+                    CLSID pngClsid;
+                    CLSIDFromString(L"{557CF406-1A04-11D3-9A73-0000F81EF32E}", &pngClsid);
+
+                    if (srcBmp.Save(pStream, &pngClsid, nullptr) == Gdiplus::Ok) {
+                        stream.Seek(0);
+
+                        uint64_t size = stream.Size();
+                        if (size > 0 && size < 10 * 1024 * 1024) {
+                            wss::Buffer buffer(static_cast<uint32_t>(size));
+                            stream.ReadAsync(buffer, static_cast<uint32_t>(size), wss::InputStreamOptions::None).get();
+
+                            auto dataReader = wss::DataReader::FromBuffer(buffer);
+                            std::vector<uint8_t> pngData(static_cast<uint32_t>(size));
+                            dataReader.ReadBytes(pngData);
+
+                            DWORD base64Len = 0;
+                            CryptBinaryToStringW(pngData.data(), static_cast<DWORD>(pngData.size()),
+                                                 CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF,
+                                                 nullptr, &base64Len);
+
+                            if (base64Len > 0) {
+                                std::vector<wchar_t> base64(base64Len);
+                                if (CryptBinaryToStringW(pngData.data(), static_cast<DWORD>(pngData.size()),
+                                                         CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF,
+                                                         base64.data(), &base64Len)) {
+                                    result = L"data:image/png;base64," + std::wstring(base64.data(), base64Len - 1);
+                                }
+                            }
+                        }
+                    }
+                    pStream->Release();
+                }
+            }
+        } catch (...) {
+            Wh_Log(L"Exception creating data URI from icon");
+        }
+
+        DeleteObject(dib);
+    }
+
+    DeleteDC(memDC);
+    ReleaseDC(nullptr, screenDC);
+    return result;
+}
+
+static wuxmi::BitmapSource CreateBitmapSourceFromIcon(HICON hIcon) {
+    if (!hIcon) return nullptr;
+
+    ICONINFO info{};
+    if (!GetIconInfo(hIcon, &info)) return nullptr;
+
+    struct BitmapGuard {
+        HBITMAP color, mask;
+        ~BitmapGuard() {
+            if (color) DeleteObject(color);
+            if (mask)  DeleteObject(mask);
+        }
+    } bmpGuard{ info.hbmColor, info.hbmMask };
+
+    BITMAP bm{};
+    GetObject(info.hbmColor ? info.hbmColor : info.hbmMask, sizeof(bm), &bm);
+
+    HDC screenDC = GetDC(nullptr);
+    HDC memDC    = CreateCompatibleDC(screenDC);
+
+    BITMAPINFO bmi{};
+    bmi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth       = bm.bmWidth;
+    bmi.bmiHeader.biHeight      = -bm.bmHeight;
+    bmi.bmiHeader.biPlanes      = 1;
+    bmi.bmiHeader.biBitCount    = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    void* bits = nullptr;
+    HBITMAP dib = CreateDIBSection(screenDC, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
+
+    wuxmi::BitmapSource result = nullptr;
+    if (dib && bits) {
+        HBITMAP oldBmp = static_cast<HBITMAP>(SelectObject(memDC, dib));
+        DrawIconEx(memDC, 0, 0, hIcon, bm.bmWidth, bm.bmHeight, 0, nullptr, DI_NORMAL);
+        SelectObject(memDC, oldBmp);
+
+        try {
+            wss::InMemoryRandomAccessStream stream;
+
+            EnsureGdiplus();
+
+            Gdiplus::Bitmap srcBmp(bm.bmWidth, bm.bmHeight, bm.bmWidth * 4,
+                                   PixelFormat32bppARGB, static_cast<BYTE*>(bits));
+
+            if (srcBmp.GetLastStatus() == Gdiplus::Ok) {
+                IStream* pStream = nullptr;
+                if (SUCCEEDED(CreateStreamOverRandomAccessStream(
+                    winrt::get_unknown(stream), IID_PPV_ARGS(&pStream)))) {
+
+                    CLSID pngClsid;
+                    CLSIDFromString(L"{557CF406-1A04-11D3-9A73-0000F81EF32E}", &pngClsid);
+
+                    if (srcBmp.Save(pStream, &pngClsid, nullptr) == Gdiplus::Ok) {
+                        stream.Seek(0);
+
+                        wuxmi::BitmapImage bmpImage;
+                        bmpImage.SetSource(stream);
+                        result = bmpImage;
+                    }
+                    pStream->Release();
+                }
+            }
+        } catch (...) {
+            Wh_Log(L"Exception creating in-memory bitmap from icon");
+        }
+
+        DeleteObject(dib);
+    }
+
+    DeleteDC(memDC);
+    ReleaseDC(nullptr, screenDC);
+    return result;
+}
+
 static std::wstring SaveIconToPng(HICON hIcon) {
     if (!hIcon) return L"";
 
@@ -513,7 +687,21 @@ static std::wstring SaveIconToPng(HICON hIcon) {
 
     DeleteDC(memDC);
     ReleaseDC(nullptr, screenDC);
+
     return result;
+}
+
+static wuxmi::BitmapSource ResolveExeIconInMemory(const std::wstring& iconStr, int size) {
+    if (iconStr.empty() || !IsExePath(iconStr)) return nullptr;
+    if (GetFileAttributesW(iconStr.c_str()) == INVALID_FILE_ATTRIBUTES) {
+        Wh_Log(L"Executable not found for icon: %s", iconStr.c_str());
+        return nullptr;
+    }
+    HICON hIcon = LoadIconFromExe(iconStr, size);
+    if (!hIcon) return nullptr;
+    auto bmpSource = CreateBitmapSourceFromIcon(hIcon);
+    DestroyIcon(hIcon);
+    return bmpSource;
 }
 
 static std::wstring ResolveExeIcon(const std::wstring& iconStr, int size) {
@@ -534,10 +722,22 @@ static std::wstring GlyphOrEmpty(const std::wstring& s) {
 }
 
 static wux::UIElement MakeButtonIcon(const std::wstring& iconStr) {
-    std::wstring resolved = ResolveExeIcon(iconStr, 32);
-    if (resolved.empty() && IsExePath(iconStr)) {
-
+    if (IsExePath(iconStr)) {
+        auto bmpSource = ResolveExeIconInMemory(iconStr, 32);
+        if (bmpSource) {
+            try {
+                wuxc::Image img;
+                img.Width(16); img.Height(16);
+                img.Stretch(wuxm::Stretch::Uniform);
+                img.Source(bmpSource);
+                return img;
+            } catch (...) {
+                Wh_Log(L"Exception creating button icon from in-memory bitmap: %s", iconStr.c_str());
+            }
+        }
     }
+
+    std::wstring resolved = ResolveExeIcon(iconStr, 32);
 
     if (!resolved.empty() && IsImagePath(resolved)) {
         if (GetFileAttributesW(resolved.c_str()) != INVALID_FILE_ATTRIBUTES) {
@@ -571,7 +771,32 @@ static wux::UIElement MakeButtonIcon(const std::wstring& iconStr) {
 }
 
 static wuxc::IconElement MakeMenuIcon(const std::wstring& iconStr) {
-    std::wstring resolved = ResolveExeIcon(iconStr, 16);
+    if (IsExePath(iconStr)) {
+        if (GetFileAttributesW(iconStr.c_str()) != INVALID_FILE_ATTRIBUTES) {
+            HICON hIcon = LoadIconFromExe(iconStr, 16);
+            if (hIcon) {
+                std::wstring dataUri = CreateDataUriFromIcon(hIcon);
+                DestroyIcon(hIcon);
+
+                if (!dataUri.empty()) {
+                    try {
+                        wuxc::BitmapIcon bi;
+                        bi.UriSource(winrt::Windows::Foundation::Uri(dataUri));
+                        bi.ShowAsMonochrome(false);
+                        bi.Width(16); bi.Height(16);
+                        return bi;
+                    } catch (...) {
+                        Wh_Log(L"Exception creating menu icon from data URI: %s", iconStr.c_str());
+                    }
+                }
+            }
+        }
+    }
+
+    std::wstring resolved = iconStr;
+    if (!IsExePath(iconStr)) {
+        resolved = ResolveExeIcon(iconStr, 16);
+    }
 
     if (!resolved.empty() && IsImagePath(resolved)) {
         if (GetFileAttributesW(resolved.c_str()) != INVALID_FILE_ATTRIBUTES) {
@@ -831,12 +1056,6 @@ static void SendVirtualKeypress(const std::wstring& keysStr) {
         wchar_t c = keysStr[i];
         if (c == L'+' || c == L';') {
             flush();
-        } else if (c == L'n' && !token.empty()) {
-            std::wstring lo = ToLower(token);
-            bool isNumeric = !lo.empty() &&
-                             (lo[0] == L'0' || iswdigit(lo[0]));
-            if (isNumeric) flush();
-            else token += c;
         } else {
             token += c;
         }
