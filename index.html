@@ -1,0 +1,3421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows 11 Start Menu Buttons Configurator</title>
+    <style>
+        @font-face {
+            font-family: 'Segoe Fluent Icons';
+            src: local('Segoe Fluent Icons');
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: grid;
+            --sidebar-width: 360px;
+            grid-template-columns: 1fr var(--sidebar-width);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        .main-area {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .header {
+            padding: 10px 16px;
+            background: #151515;
+            border-bottom: 1px solid #252525;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+            position: relative;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+            min-width: 0; 
+            overflow: hidden;
+        }
+
+        .header h1 {
+            font-size: clamp(14px, 2.2vw, 20px);
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-shrink: 1;
+            min-width: 0;
+        }
+
+        .header-links {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .header-link {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            height: 36px;
+            background: #252525;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #e0e0e0;
+            font-size: 12px;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            -webkit-user-drag: none;
+            user-select: none;
+            -webkit-user-select: none;
+            flex-shrink: 0;
+        }
+
+        .header-link:hover {
+            background: #303030;
+        }
+
+        .header-link:active {
+            background: #404040;
+            transform: scale(0.95);
+        }
+
+        .header-link img {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+        }
+
+        .header-btns {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            background: #252525;
+            border: none;
+            border-radius: 6px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-family: 'Segoe Fluent Icons';
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .icon-btn:hover {
+            background: #303030;
+        }
+
+        .icon-btn:active {
+            background: #404040;
+            transform: scale(0.95);
+        }
+
+        .icon-btn.active {
+            background: #0078d4;
+            color: white;
+        }
+
+        .header-separator {
+            width: 1px;
+            height: 24px;
+            background: #3a3a3a;
+            margin: 0 4px;
+            align-self: center;
+        }
+
+        .header-mid-separator {
+            position: absolute;
+            top: 50%;
+            width: 1px;
+            height: 24px;
+            background: #3a3a3a;
+            transform: translateY(-50%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s;
+        }
+
+        .header-mid-separator.visible {
+            opacity: 1;
+        }
+
+        .preview-area {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+        }
+
+        .preview-area.panning {
+            cursor: grabbing;
+        }
+
+        .preview-area::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .preview-area::-webkit-scrollbar-thumb {
+            background: #2a2a2a;
+            border-radius: 4px;
+        }
+
+        .scene-container {
+            transform-origin: center center;
+            transition: transform 0.1s ease-out;
+        }
+
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            background: #252525;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .zoom-btn:hover {
+            background: #303030;
+            border-color: #0078d4;
+        }
+
+        .zoom-btn:active {
+            background: #404040;
+            transform: scale(0.95);
+        }
+
+        .zoom-info {
+            width: 50px;
+            height: 36px;
+            background: #252525;
+            border: none;
+            border-radius: 6px;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-family: 'Segoe UI', sans-serif;
+            align-items: center;
+            user-select: none;
+        }
+
+        .buttons-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .menu-button {
+            width: 48px;
+            height: 48px;
+            background: #1f1f1f;
+            border: 2px solid #2a2a2a;
+            border-radius: 8px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-family: 'Segoe Fluent Icons';
+            font-size: 18px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .menu-button:hover {
+            background: #2a2a2a;
+            border-color: #3a3a3a;
+        }
+
+        .menu-button.selected {
+            background: #005fb8;
+            border-color: #0078d4;
+        }
+
+        .menu-button:active {
+            transform: scale(0.95);
+        }
+
+        .add-button {
+            width: 32px;
+            height: 32px;
+            background: #0078d4;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-button:hover {
+            background: #106ebe;
+        }
+
+        .add-button:active {
+            transform: scale(0.9);
+        }
+
+        .sidebar {
+            background: #151515;
+            border-left: 1px solid #252525;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            position: relative;
+        }
+
+        .sidebar-resize-handle {
+            position: absolute;
+            top: 0;
+            left: -3px;
+            width: 6px;
+            height: 100%;
+            cursor: ew-resize;
+            z-index: 50;
+            background: transparent;
+            touch-action: none;
+        }
+
+        .sidebar-resize-handle:hover,
+        .sidebar-resize-handle.resizing {
+            background: #0078d4;
+        }
+
+        .sidebar-header {
+            padding: 12px;
+            border-bottom: 1px solid #252525;
+        }
+
+        .sidebar-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .sidebar-subtitle {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .sidebar-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: #2a2a2a;
+            border-radius: 3px;
+        }
+
+        .empty {
+            text-align: center;
+            color: #666;
+            padding: 60px 20px;
+            font-size: 13px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #e0e0e0;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 8px 12px;
+            background: #1f1f1f;
+            border: 1px solid #2a2a2a;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 13px;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: #0078d4;
+        }
+
+        .form-input:disabled,
+        .form-select:disabled,
+        .form-textarea:disabled {
+            background: #1a1a1a;
+            color: #666;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .form-select {
+            cursor: pointer;
+        }
+
+        .form-hint {
+            display: block;
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        /* Toggle Switch */
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+
+        .toggle-label {
+            font-size: 13px;
+            color: #e0e0e0;
+            font-weight: 600;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #3a3a3a;
+            border-radius: 22px;
+            transition: 0.2s;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: '';
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: #888;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: #0078d4;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(18px);
+            background: white;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #0078d4;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #106ebe;
+        }
+
+        .btn-danger {
+            background: #c50f1f;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #a80000;
+        }
+
+        .action-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .action-item {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+
+        .action-item input {
+            flex: 1;
+        }
+
+        .action-item-btn {
+            width: 32px;
+            height: 32px;
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .action-item-btn:hover {
+            background: #3a3a3a;
+        }
+
+        .action-item-btn.add {
+            background: #0078d4;
+        }
+
+        .action-item-btn.add:hover {
+            background: #106ebe;
+        }
+
+        .action-item-btn.remove {
+            background: #c50f1f;
+        }
+
+        .action-item-btn.remove:hover {
+            background: #a80000;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .empty-icon {
+            font-family: 'Segoe Fluent Icons';
+            font-size: 48px;
+            color: #404040;
+            margin-bottom: 16px;
+        }
+
+        .empty-text {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .empty-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 20px;
+            background: #0078d4;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .empty-action:hover {
+            background: #106ebe;
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: absolute;
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            padding: 4px;
+            min-width: 200px;
+            max-width: 280px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .context-menu.show {
+            display: block;
+        }
+
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+            position: relative;
+            user-select: none;
+        }
+
+        .context-menu-item:hover {
+            background: #3a3a3a;
+        }
+
+        .context-menu-item.dragging {
+            opacity: 0.5;
+        }
+
+        .context-menu-icon {
+            font-family: 'Segoe Fluent Icons';
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .context-menu-text {
+            flex: 1;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+
+        .context-menu-arrow {
+            font-family: 'Segoe Fluent Icons';
+            font-size: 12px;
+            color: #888;
+        }
+
+        .context-menu-actions {
+            display: flex;
+            gap: 4px;
+            margin-left: auto;
+        }
+
+        .context-menu-btn {
+            width: 20px;
+            height: 20px;
+            background: transparent;
+            border: none;
+            border-radius: 3px;
+            color: #888;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .context-menu-btn:hover {
+            background: #4a4a4a;
+            color: #e0e0e0;
+        }
+
+        .context-menu-item.selected {
+            background: #0078d4;
+        }
+
+        .context-menu-item.selected .context-menu-text,
+        .context-menu-item.selected .context-menu-icon,
+        .context-menu-item.selected .context-menu-btn {
+            color: white;
+        }
+
+        .context-menu-add {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 6px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .context-menu-add:hover {
+            background: #3a3a3a;
+            color: #e0e0e0;
+        }
+
+        .submenu-indicator {
+            position: absolute;
+            right: 8px;
+            font-family: 'Segoe Fluent Icons';
+            font-size: 10px;
+            color: #0078d4;
+        }
+
+        /* Info Modal Styles */
+        .info-menu-section {
+            margin-bottom: 24px;
+        }
+
+        .info-menu-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-menu-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .info-menu-text {
+            font-size: 14px;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        .info-menu-link {
+            color: #0078d4;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .info-menu-link:hover {
+            color: #106ebe;
+            text-decoration: underline;
+        }
+
+        .info-menu-controls {
+            font-size: 14px;
+            color: #e0e0e0;
+            line-height: 2;
+        }
+
+        .info-menu-controls kbd {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #1f1f1f;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'Consolas', monospace;
+            color: #aaa;
+            margin-right: 4px;
+        }
+
+        /* Drag and drop */
+        .menu-button.dragging {
+            opacity: 0.4;
+            transform: scale(0.95);
+        }
+
+        .menu-button.drag-over {
+            background: #0078d4;
+            border-color: #106ebe;
+            transform: scale(1.05);
+        }
+
+        .context-menu-item.dragging {
+            opacity: 0.4;
+            background: #1f1f1f;
+        }
+
+        .context-menu-item.drag-over {
+            background: #0078d4;
+            border-left: 3px solid #106ebe;
+        }
+
+        .drag-placeholder {
+            display: inline-block;
+            width: 48px;
+            height: 48px;
+            border: 2px dashed #0078d4;
+            border-radius: 8px;
+            background: rgba(0, 120, 212, 0.15);
+            vertical-align: top;
+            position: relative;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .drag-placeholder::before {
+            content: '↓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #0078d4;
+            font-weight: bold;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                background: rgba(0, 120, 212, 0.15);
+                border-color: #0078d4;
+            }
+            50% {
+                background: rgba(0, 120, 212, 0.3);
+                border-color: #106ebe;
+            }
+        }
+
+        .menu-drag-indicator {
+            height: 2px;
+            background: #0078d4;
+            margin: 4px 0;
+            border-radius: 1px;
+            position: relative;
+            animation: slideIn 0.2s ease-out;
+        }
+
+        .menu-drag-indicator::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: -3px;
+            width: 8px;
+            height: 8px;
+            background: #0078d4;
+            border-radius: 50%;
+        }
+
+        .menu-drag-indicator::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -3px;
+            width: 8px;
+            height: 8px;
+            background: #0078d4;
+            border-radius: 50%;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: scaleX(0);
+                opacity: 0;
+            }
+            to {
+                transform: scaleX(1);
+                opacity: 1;
+            }
+        }
+
+        .drag-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            opacity: 0.8;
+            transform: rotate(5deg);
+        }
+
+        /* Drag cursor */
+        .dragging-cursor * {
+            cursor: grabbing !important;
+        }
+
+        /* Icon Browser Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: #1f1f1f;
+            border: 1px solid #3a3a3a;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #3a3a3a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #2a2a2a;
+        }
+
+        .modal-search {
+            padding: 16px 24px;
+            border-bottom: 1px solid #3a3a3a;
+        }
+
+        .modal-search input {
+            width: 100%;
+            padding: 10px 16px;
+            background: #151515;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .modal-search input:focus {
+            outline: none;
+            border-color: #0078d4;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+        }
+
+        .icon-item {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px 8px;
+            background: #252525;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .icon-item:hover {
+            background: #2a2a2a;
+            border-color: #3a3a3a;
+        }
+
+        .icon-item.selected {
+            background: #005fb8;
+            border-color: #0078d4;
+        }
+
+        .icon-item-preview {
+            font-family: 'Segoe Fluent Icons';
+            font-size: 28px;
+            color: #e0e0e0;
+        }
+
+        .icon-item-code {
+            font-size: 10px;
+            color: #888;
+            font-family: 'Consolas', monospace;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #3a3a3a;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .modal-btn-cancel {
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+
+        .modal-btn-cancel:hover {
+            background: #3a3a3a;
+        }
+
+        .modal-btn-select {
+            background: #0078d4;
+            color: white;
+        }
+
+        .modal-btn-select:hover {
+            background: #106ebe;
+        }
+
+        .modal-btn-select:disabled {
+            background: #2a2a2a;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .icon-browse-btn {
+            width: 32px;
+            height: 32px;
+            background: #0078d4;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-family: 'Segoe Fluent Icons';
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .icon-browse-btn:hover {
+            background: #106ebe;
+        }
+
+        .icon-input-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .icon-input-group .form-input {
+            flex: 1;
+        }
+
+        /* ─── Responsive Layout ─── */
+
+        /* Large screens (1400px+): wider sidebar by default */
+        @media (min-width: 1400px) {
+            .container:not(.sidebar-resized) {
+                --sidebar-width: 420px;
+            }
+        }
+
+        /* Medium screens (900-1200px): narrower sidebar by default */
+        @media (max-width: 1200px) {
+            .container:not(.sidebar-resized) {
+                --sidebar-width: 300px;
+            }
+            .header-link span {
+                display: none;
+            }
+            .header-link {
+                padding: 6px 10px;
+            }
+        }
+
+        /* Narrow desktop windows (< 900px): keep sidebar on the right, just tighter by default */
+        @media (max-width: 900px) {
+            .container:not(.sidebar-resized) {
+                --sidebar-width: 260px;
+            }
+        }
+
+        /* Very narrow desktop windows (< 600px): title truncates instead of disappearing,
+           right-side sidebar and header buttons always stay visible */
+        @media (max-width: 600px) {
+            .container:not(.sidebar-resized) {
+                --sidebar-width: 220px;
+            }
+            .header-separator:first-of-type {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <div class="main-area">
+            <div class="header">
+                <div class="header-left">
+                    <h1 id="mainTitle" data-full-title="Windows 11 Start Menu Buttons - Configurator">Windows 11 Start Menu Buttons - Configurator</h1>
+                    <span class="header-separator"></span>
+                    <div class="header-links">
+                        <a href="https://github.com/Salyts/Windows-11-Start-Menu-Buttons" target="_blank" class="header-link" title="View on GitHub">
+                            <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/github-white-icon.png" alt="GitHub" draggable="false" />
+                            <span>GitHub</span>
+                        </a>
+                        <a href="https://windhawk.net/mods/windows-11-start-menu-buttons" target="_blank" class="header-link" title="View on Windhawk">
+                            <img src="https://www.wintotal.de/media/2022/09/windhawk.png" alt="Windhawk" draggable="false" />
+                            <span>Windhawk</span>
+                        </a>
+                        <a
+                            class="icon-btn header-link"
+                            id="DonateBtn"
+                            title="Support the author"
+                            href="https://ko-fi.com/salyts"
+                            target="_blank"
+                        >
+                            &#xEB51;
+                        </a>
+                        <button class="icon-btn" id="infoBtn" title="Information" onclick="toggleInfoMenu()">&#xE946;</button>
+                    </div>
+                </div>
+                <span class="header-mid-separator" id="headerMidSeparator"></span>
+                <div class="header-btns">
+                    <button class="icon-btn" id="resetBtn" title="Reset to Default" onclick="resetToDefault()">&#xE777;</button>
+                    <span class="header-separator"></span>
+                    <button class="icon-btn" title="Migrate from v2.1 to v2.2" onclick="openMigrateModal()">&#xE8AB;</button>
+                    <button class="icon-btn" title="Import in text mode" onclick="openImportTextModal()">&#xF5AD;</button>
+                    <button class="icon-btn" title="Import Config" onclick="importConfig()">&#xE898;</button>
+                    <button class="icon-btn" title="Export Config" onclick="exportConfig()">&#xE896;</button>
+                    <button class="icon-btn" title="Copy Config" onclick="copyConfig()">&#xE8C8;</button>
+                    <span class="header-separator"></span>
+                    <button class="icon-btn" id="textualBtn" title="Textual mode" onclick="showTextualMode()">&#xE943;</button>
+                    <button class="icon-btn" id="settingsBtn" title="Mod Settings" onclick="showModSettings()">&#xE713;</button>
+                </div>
+            </div>
+            <div class="preview-area" id="preview-area">
+                <div class="scene-container" id="scene-container">
+                    <div id="main-content">
+                        <div class="empty-state">
+                            <div class="empty-icon">&#xE710;</div>
+                            <div class="empty-text">No buttons yet. Click the button below to add your first button.</div>
+                            <button class="empty-action" onclick="addButton()">
+                                <span style="font-size: 16px;">+</span>
+                                <span>Add First Button</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="zoom-controls">
+                    <button class="icon-btn" title="Zoom Out" onclick="zoomOut()">&#xE710;</button>
+                    <div class="zoom-info" id="zoom-info">100%</div>
+                    <button class="icon-btn" title="Zoom In" onclick="zoomIn()">&#xE738;</button>
+                    <button class="icon-btn" title="Reset View" onclick="resetZoom()">&#xE73F;</button>
+                </div>
+            </div>
+        </div>
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-resize-handle" id="sidebarResizeHandle" title="Drag to resize"></div>
+            <div class="sidebar-header">
+                <div class="sidebar-title" id="sidebar-title">Button Settings</div>
+                <div class="sidebar-subtitle" id="sidebar-subtitle">Select a button to edit</div>
+            </div>
+            <div class="sidebar-content" id="sidebar-content">
+                <div class="empty">Click on a button to edit its properties</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Icon Browser Modal -->
+    <div class="modal-overlay" id="iconBrowserModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Browse Segoe Fluent Icons</div>
+                <button class="modal-close" onclick="closeIconBrowser()">×</button>
+            </div>
+            <div class="modal-search">
+                <input type="text" id="iconSearch" placeholder="Search icons..." oninput="filterIcons(this.value)" />
+            </div>
+            <div class="modal-body">
+                <div class="icon-grid" id="iconGrid"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeIconBrowser()">Cancel</button>
+                <button class="modal-btn modal-btn-select" id="selectIconBtn" onclick="selectIcon()" disabled>Select Icon</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Modal -->
+    <div class="modal-overlay" id="infoModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Information</div>
+                <button class="modal-close" onclick="closeInfoMenu()">×</button>
+            </div>
+            <div class="modal-body" style="padding: 32px;">
+                <div class="info-menu-section">
+                    <div class="info-menu-label">About</div>
+                    <div class="info-menu-text">
+                        Visual configurator for Windows 11 Start Menu Buttons Windhawk mod. 
+                        Create and customize buttons with submenus for your Start Menu.
+                    </div>
+                </div>
+                
+                <div class="info-menu-section">
+                    <div class="info-menu-label">Author</div>
+                    <div class="info-menu-text">
+                        <a href="https://github.com/Salyts" target="_blank" class="info-menu-link">Salyts</a>
+                    </div>
+                </div>
+                
+                <div class="info-menu-section">
+                    <div class="info-menu-label">Controls</div>
+                    <div class="info-menu-controls">
+                        <kbd>Left Click</kbd> - Select button/menu item<br>
+                        <kbd>Right Click</kbd> - Open right-click submenu<br>
+                        <kbd>Middle Click</kbd> - Delete button/item (with confirmation)<br>
+                        <kbd>Mouse Wheel</kbd> - Zoom in/out<br>
+                        <kbd>Drag Background</kbd> - Pan the scene<br>
+                        <kbd>Drag Button/Item</kbd> - Reorder elements
+                    </div>
+                </div>
+                
+                <div class="info-menu-section">
+                    <div class="info-menu-label">Links</div>
+                    <div class="info-menu-text">
+                        <a href="https://github.com/Salyts/Windows-11-Start-Menu-Buttons" target="_blank" class="info-menu-link">GitHub Repository</a><br>
+                        <a href="https://windhawk.net/mods/windows-11-start-menu-buttons" target="_blank" class="info-menu-link">Windhawk Page</a>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-select" onclick="closeInfoMenu()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Migrate v2.1 → v2.2 Modal -->
+    <div class="modal-overlay" id="migrateModal">
+        <div class="modal" style="max-width:700px;">
+            <div class="modal-header">
+                <div class="modal-title">Migrate settings from v2.1 to v2.2</div>
+                <button class="modal-close" onclick="closeMigrateModal()">×</button>
+            </div>
+            <div class="modal-body" style="padding:20px; display:flex; flex-direction:column; gap:12px;">
+                <div style="font-size:13px; color:#888; line-height:1.6;">
+                    Paste your <strong style="color:#e0e0e0;">v2.1 config</strong> text below. It will be converted to v2.2 format:<br>
+                    <span style="color:#666; font-size:12px;">
+                        • <code style="background:#1a1a1a;padding:1px 5px;border-radius:3px;">Action: "value"</code> → <code style="background:#1a1a1a;padding:1px 5px;border-radius:3px;">Action: ['value']</code><br>
+                        • Submenu items (single level) → wrapped in v2.2 nested structure<br>
+                        • <code style="background:#1a1a1a;padding:1px 5px;border-radius:3px;">rightClickSubmenu</code> added (empty)
+                    </span>
+                </div>
+                <textarea id="migrateTextArea" style="
+                    flex:1; min-height:320px; width:100%;
+                    background:#151515; border:1px solid #3a3a3a;
+                    border-radius:6px; color:#e0e0e0;
+                    font-family:'Consolas',monospace; font-size:13px;
+                    padding:12px; resize:vertical; outline:none;
+                " placeholder="Paste v2.1 YAML config here..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeMigrateModal()">Cancel</button>
+                <button class="modal-btn modal-btn-select" onclick="migrateFromV21()">Migrate & Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import in Text Mode Modal -->
+    <div class="modal-overlay" id="importTextModal">
+        <div class="modal" style="max-width:700px;">
+            <div class="modal-header">
+                <div class="modal-title">Import in Text Mode</div>
+                <button class="modal-close" onclick="closeImportTextModal()">×</button>
+            </div>
+            <div class="modal-body" style="padding:20px; display:flex; flex-direction:column; gap:12px;">
+                <div style="font-size:13px; color:#888;">Paste your Windhawk config text (YAML format) below and click Import.</div>
+                <textarea id="importTextArea" style="
+                    flex:1; min-height:360px; width:100%;
+                    background:#151515; border:1px solid #3a3a3a;
+                    border-radius:6px; color:#e0e0e0;
+                    font-family:'Consolas',monospace; font-size:13px;
+                    padding:12px; resize:vertical; outline:none;
+                " placeholder="Paste YAML config here..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeImportTextModal()">Cancel</button>
+                <button class="modal-btn modal-btn-select" onclick="importFromText()">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Info Modal -->
+    <div class="modal-overlay" id="actionInfoModal">
+        <div class="modal" style="max-width:640px;">
+            <div class="modal-header">
+                <div class="modal-title">Action Field — Format Reference</div>
+                <button class="modal-close" onclick="closeActionInfoModal()">×</button>
+            </div>
+            <div class="modal-body" style="padding:24px; overflow-y:auto;">
+
+                <div class="info-menu-section">
+                    <div class="info-menu-label">Action Formats</div>
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                            <tr style="border-bottom:1px solid #3a3a3a;">
+                                <th style="text-align:left;padding:6px 8px;color:#888;font-weight:600;">Prefix</th>
+                                <th style="text-align:left;padding:6px 8px;color:#888;font-weight:600;">Example</th>
+                                <th style="text-align:left;padding:6px 8px;color:#888;font-weight:600;">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#0078d4;">path</code></td>
+                                <td style="padding:7px 8px;color:#aaa;">C:\Program Files\app.exe</td>
+                                <td style="padding:7px 8px;color:#ccc;">Opens a file or folder by absolute path</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#0078d4;">~</code></td>
+                                <td style="padding:7px 8px;color:#aaa;">~Downloads</td>
+                                <td style="padding:7px 8px;color:#ccc;">Opens a folder or file by name</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#0078d4;">cmd:</code></td>
+                                <td style="padding:7px 8px;color:#aaa;">cmd:control</td>
+                                <td style="padding:7px 8px;color:#ccc;">Runs via cmd.exe</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#0078d4;">shell:</code></td>
+                                <td style="padding:7px 8px;color:#aaa;">shell:shutdown /r /f /t 0</td>
+                                <td style="padding:7px 8px;color:#ccc;">Runs via powershell.exe</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#0078d4;">press:</code></td>
+                                <td style="padding:7px 8px;color:#aaa;">press:Win+E</td>
+                                <td style="padding:7px 8px;color:#ccc;">Keyboard key press (Win32 VK codes)</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#0078d4;">web:</code></td>
+                                <td style="padding:7px 8px;color:#aaa;">web:https://windhawk.net/</td>
+                                <td style="padding:7px 8px;color:#ccc;">Opens URL in default browser</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#0078d4;">ms-settings:</code></td>
+                                <td style="padding:7px 8px;color:#aaa;">ms-settings:bluetooth</td>
+                                <td style="padding:7px 8px;color:#ccc;">Opens a Windows Settings page</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="info-menu-section">
+                    <div class="info-menu-label">Modifier Signs (prepend to any action)</div>
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                            <tr style="border-bottom:1px solid #3a3a3a;">
+                                <th style="text-align:left;padding:6px 8px;color:#888;font-weight:600;">Sign</th>
+                                <th style="text-align:left;padding:6px 8px;color:#888;font-weight:600;">Example</th>
+                                <th style="text-align:left;padding:6px 8px;color:#888;font-weight:600;">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#d4a500;">-</code></td>
+                                <td style="padding:7px 8px;color:#aaa;">-cmd:regedit</td>
+                                <td style="padding:7px 8px;color:#ccc;">Run as administrator</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#d4a500;">*</code></td>
+                                <td style="padding:7px 8px;color:#aaa;">*cmd:tasklist</td>
+                                <td style="padding:7px 8px;color:#ccc;">Show terminal window (cmd/shell only)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div style="font-size:12px;color:#888;margin-top:8px;">Signs can be combined: <code style="background:#1a1a1a;padding:1px 5px;border-radius:3px;color:#aaa;">-*cmd:tasklist</code> — run cmd in terminal as admin.</div>
+                </div>
+
+                <div class="info-menu-section">
+                    <div class="info-menu-label">Multiple Commands</div>
+                    <div class="info-menu-text">Use the <strong>+</strong> button to add multiple actions. They execute sequentially with a 50ms delay between them.</div>
+                </div>
+
+                <div class="info-menu-section">
+                    <div class="info-menu-label">Practical Examples</div>
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                            <tr style="border-bottom:1px solid #3a3a3a;">
+                                <th style="text-align:left;padding:6px 8px;color:#888;font-weight:600;">What it does</th>
+                                <th style="text-align:left;padding:6px 8px;color:#888;font-weight:600;">Action value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Open File Explorer</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">~</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Open Downloads folder</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">~Downloads</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Open Windows Settings</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">ms-settings:</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Open Bluetooth settings</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">ms-settings:bluetooth</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Open Wi-Fi settings</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">ms-settings:network-wifi</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Shut down PC</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">cmd:shutdown /s /f /t 0</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Restart PC</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">cmd:shutdown /r /f /t 0</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Sign out</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">cmd:shutdown /l</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Sleep</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">press:0x5F</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Lock PC</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">press:Win+L</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Open Task Manager</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">press:Ctrl+Shift+Esc</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Open Run dialog</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">press:Win+R</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Open Action Center</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">press:Win+A</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Open Notification Center</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">press:Win+N</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Show Desktop</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">press:Win+D</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Open Snipping Tool</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">press:Win+Shift+S</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Open a website</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">web:https://example.com</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Run app as admin</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">-C:\Windows\regedit.exe</code></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #2a2a2a;">
+                                <td style="padding:7px 8px;color:#ccc;">Run cmd with visible window</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">*cmd:ipconfig /all</code></td>
+                            </tr>
+                            <tr>
+                                <td style="padding:7px 8px;color:#ccc;">Open Win+X menu</td>
+                                <td style="padding:7px 8px;"><code style="background:#1a1a1a;padding:2px 6px;border-radius:3px;color:#aaa;">press:Win+X</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-select" onclick="closeActionInfoModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        let max_submenu_levels = 3;
+
+        const segoeIcons = [];
+        for (let i = 0xE700; i <= 0xF8FF; i++) {
+            const code = i.toString(16).toUpperCase();
+            segoeIcons.push({ code: code, name: `Icon_${code}` });
+        }
+        console.log(`Generated ${segoeIcons.length} Segoe Fluent Icons`);
+
+
+        let selectedIconCode = null;
+        let iconBrowserCallback = null;
+
+        function openIconBrowser(callback) {
+            iconBrowserCallback = callback;
+            selectedIconCode = null;
+            document.getElementById('selectIconBtn').disabled = true;
+            document.getElementById('iconSearch').value = '';
+            renderIconGrid(segoeIcons);
+            document.getElementById('iconBrowserModal').classList.add('show');
+        }
+
+        function closeIconBrowser() {
+            document.getElementById('iconBrowserModal').classList.remove('show');
+            iconBrowserCallback = null;
+            selectedIconCode = null;
+        }
+
+        function renderIconGrid(icons) {
+            const grid = document.getElementById('iconGrid');
+            grid.innerHTML = icons.map(icon => `
+                <div class="icon-item" onclick="selectIconInBrowser('${icon.code}')">
+                    <div class="icon-item-preview">&#x${icon.code};</div>
+                    <div class="icon-item-code">${icon.code}</div>
+                </div>
+            `).join('');
+        }
+
+        function selectIconInBrowser(code) {
+            selectedIconCode = code;
+            document.getElementById('selectIconBtn').disabled = false;
+
+            document.querySelectorAll('.icon-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+        }
+
+        function selectIcon() {
+            if (selectedIconCode && iconBrowserCallback) {
+                iconBrowserCallback(`\\u${selectedIconCode}`);
+                closeIconBrowser();
+            }
+        }
+
+        function filterIcons(query) {
+            const filtered = segoeIcons.filter(icon => 
+                icon.name.toLowerCase().includes(query.toLowerCase()) ||
+                icon.code.toLowerCase().includes(query.toLowerCase())
+            );
+            renderIconGrid(filtered);
+        }
+
+        let buttons = [
+            { preset: 'menu_shutdown', name: '', icon: '', action: [''], submenu: [], rightClickSubmenu: [] },
+            { preset: 'settings', name: '', icon: '', action: [''], submenu: [], rightClickSubmenu: [] },
+            { preset: 'explorer', name: '', icon: '', action: [''], submenu: [], rightClickSubmenu: [] }
+        ];
+        let selectedButtonIndex = null;
+        let selectedMenuItem = null;
+        let showingModSettings = true;
+        let isTextualMode = false;
+        let contextMenuState = null;
+        let draggedItem = null;
+        let rightClickActive = {};
+
+        let modSettings = {
+            preset_language: 'en',
+            alignment: 'right',
+            account_button: 'left',
+            invert_buttons: true,
+            invert_icons_submenus: false,
+            close_start_menu: true,
+            button_spacing: 0,
+            container_margin_left: -16,
+            container_margin_right: -16
+        };
+
+        const presets = {
+            'custom': { name: 'Custom', icon: '\\uE783', action: '' },
+            'settings': { name: 'Settings', icon: '\\uE713', action: 'ms-settings:' },
+            'explorer': { name: 'Explorer', icon: '\\uEC50', action: '~' },
+            'documents': { name: 'Documents', icon: '\\uE8A5', action: '~Documents' },
+            'downloads': { name: 'Downloads', icon: '\\uE896', action: '~Downloads' },
+            'music': { name: 'Music', icon: '\\uEC4F', action: '~Music' },
+            'pictures': { name: 'Pictures', icon: '\\uE91B', action: '~Pictures' },
+            'videos': { name: 'Videos', icon: '\\uE714', action: '~Videos' },
+            'network': { name: 'Network', icon: '\\uEC27', action: 'shell:::{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}' },
+            'personal_folder': { name: 'Personal Folder', icon: '\\uEC25', action: '~' },
+            'shutdown': { name: 'Shut down', icon: '\\uE7E8', action: 'cmd:shutdown /s /f /t 0' },
+            'restart': { name: 'Restart', icon: '\\uE777', action: 'cmd:shutdown /r /f /t 0' },
+            'sign_out': { name: 'Sign out', icon: '\\uF3B1', action: 'cmd:shutdown /l' },
+            'sleep': { name: 'Sleep', icon: '\\uE708', action: 'press:0x5F' },
+            'hibernate': { name: 'Hibernate', icon: '\\uE823', action: 'press:Win+X;U;H' },
+            'lock': { name: 'Lock', icon: '\\uE72E', action: 'press:Win+L' },
+            'menu_shutdown': { name: 'Power Menu', icon: '\\uE7E8', action: 'press:Win+X;U' }
+        };
+
+        function addButton() {
+            const newButton = {
+                preset: 'custom',
+                name: 'New Button',
+                icon: '\\uE783',
+                action: [''],
+                submenu: [],
+                rightClickSubmenu: []
+            };
+            buttons.push(newButton);
+            render();
+            selectButton(buttons.length - 1);
+        }
+
+        function deleteButton(index) {
+            if (confirm('Delete this button?')) {
+                buttons.splice(index, 1);
+                if (selectedButtonIndex === index) {
+                    selectedButtonIndex = null;
+                } else if (selectedButtonIndex > index) {
+                    selectedButtonIndex--;
+                }
+                render();
+            }
+        }
+
+        function handleButtonMiddleClick(event, index) {
+            if (event.button === 1) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                if (confirm('Delete this button?')) {
+                    buttons.splice(index, 1);
+                    if (selectedButtonIndex === index) {
+                        selectedButtonIndex = null;
+                    } else if (selectedButtonIndex > index) {
+                        selectedButtonIndex--;
+                    }
+                    render();
+                }
+            }
+        }
+
+        function handleMenuItemMiddleClick(event, buttonIndex, path, isRightClick) {
+            if (event.button === 1) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                if (!confirm('Delete this menu item?')) {
+                    return;
+                }
+                
+                const menuType = isRightClick ? 'rightClickSubmenu' : 'submenu';
+                
+                if (!buttons[buttonIndex][menuType]) {
+                    return;
+                }
+
+                let target = buttons[buttonIndex][menuType];
+
+                for (let i = 0; i < path.length - 1; i++) {
+                    if (!target[path[i]].submenu) {
+                        return;
+                    }
+                    target = target[path[i]].submenu;
+                }
+
+                target.splice(path[path.length - 1], 1);
+
+                if (selectedMenuItem && 
+                    selectedMenuItem.buttonIndex === buttonIndex && 
+                    selectedMenuItem.isRightClick === isRightClick &&
+                    JSON.stringify(selectedMenuItem.path) === JSON.stringify(path)) {
+                    selectedMenuItem = null;
+                }
+                
+                render();
+            }
+        }
+
+        function selectButton(index) {
+            rightClickActive = {};
+            
+            selectedButtonIndex = index;
+            selectedMenuItem = null;
+            showingModSettings = false;
+            render();
+        }
+
+        function showModSettings() {
+            if (showingModSettings) {
+                // Toggle off
+                showingModSettings = false;
+            } else {
+                showingModSettings = true;
+                isTextualMode = false;
+                selectedButtonIndex = null;
+                selectedMenuItem = null;
+            }
+            render();
+        }
+
+        function toggleInfoMenu() {
+            const infoModal = document.getElementById('infoModal');
+            infoModal.classList.toggle('show');
+        }
+
+        function closeInfoMenu() {
+            const infoModal = document.getElementById('infoModal');
+            infoModal.classList.remove('show');
+        }
+
+        // ─── Migrate v2.1 → v2.2 ───
+        function openMigrateModal() {
+            document.getElementById('migrateTextArea').value = '';
+            document.getElementById('migrateModal').classList.add('show');
+        }
+
+        function closeMigrateModal() {
+            document.getElementById('migrateModal').classList.remove('show');
+        }
+
+        function migrateFromV21() {
+            const text = document.getElementById('migrateTextArea').value.trim();
+            if (!text) { alert('Please paste v2.1 config text first.'); return; }
+            try {
+                const config = parseSimpleYAML(text);
+                const migrated = migrateV21toV22(config);
+                const ok = applyImportedConfig(migrated);
+                if (ok) {
+                    closeMigrateModal();
+                    alert(`Migrated successfully! ${buttons.length} button(s) loaded.`);
+                }
+            } catch(err) {
+                alert('Migration error: ' + err.message);
+                console.error(err);
+            }
+        }
+
+        function migrateV21toV22(config) {
+            if (!config.buttons || !Array.isArray(config.buttons)) return config;
+
+            config.buttons = config.buttons.map(btn => {
+                // v2.1: Action is a plain string → convert to array
+                if (typeof btn.Action === 'string') {
+                    btn.Action = btn.Action ? [btn.Action] : [''];
+                } else if (!Array.isArray(btn.Action)) {
+                    btn.Action = [''];
+                }
+
+                // v2.1: submenu items have flat structure {name, icon, action (string)}
+                // v2.2: action must be array, and each item needs nested submenu
+                if (btn.submenu && Array.isArray(btn.submenu)) {
+                    btn.submenu = btn.submenu
+                        .filter(item => item && typeof item === 'object' &&
+                            ((item.name && item.name !== '') ||
+                             (item.icon && item.icon !== '') ||
+                             (item.action && item.action !== '')))
+                        .map(item => ({
+                            name: item.name || '',
+                            icon: item.icon || '',
+                            action: typeof item.action === 'string'
+                                ? (item.action ? [item.action] : [''])
+                                : (Array.isArray(item.action) ? item.action : ['']),
+                            submenu: []
+                        }));
+                } else {
+                    btn.submenu = [];
+                }
+
+                // v2.1: no rightClickSubmenu → add empty
+                if (!btn.rightClickSubmenu) {
+                    btn.rightClickSubmenu = [];
+                }
+
+                return btn;
+            });
+
+            return config;
+        }
+
+        // ─── Import in Text Mode ───
+        function openImportTextModal() {
+            document.getElementById('importTextArea').value = '';
+            document.getElementById('importTextModal').classList.add('show');
+        }
+
+        function closeImportTextModal() {
+            document.getElementById('importTextModal').classList.remove('show');
+        }
+
+        function openActionInfoModal() {
+            document.getElementById('actionInfoModal').classList.add('show');
+        }
+
+        function closeActionInfoModal() {
+            document.getElementById('actionInfoModal').classList.remove('show');
+        }
+
+        function importFromText() {
+            const text = document.getElementById('importTextArea').value.trim();
+            if (!text) { alert('Please paste config text first.'); return; }
+            try {
+                let config;
+                try { config = JSON.parse(text); }
+                catch { config = parseSimpleYAML(text); }
+                applyImportedConfig(config);
+                closeImportTextModal();
+            } catch(err) {
+                alert('Error parsing config: ' + err.message);
+            }
+        }
+
+        // ─── Textual Mode ───
+
+        function showTextualMode() {
+            if (isTextualMode) {
+                // Toggle off
+                isTextualMode = false;
+            } else {
+                isTextualMode = true;
+                showingModSettings = false;
+                selectedButtonIndex = null;
+                selectedMenuItem = null;
+            }
+            render();
+        }
+
+        function exitTextualMode() {
+            isTextualMode = false;
+            render();
+        }
+
+        function applyTextualEdit(textarea) {
+            try {
+                let config;
+                try { config = JSON.parse(textarea.value); }
+                catch { config = parseSimpleYAML(textarea.value); }
+                applyImportedConfig(config);
+            } catch(err) {
+                alert('Error parsing config: ' + err.message);
+            }
+        }
+
+        // ─── Shared apply imported config logic ───
+        function applyImportedConfig(config) {
+            if (config.preset_language !== undefined) {
+                modSettings = {
+                    preset_language: config.preset_language || 'en',
+                    alignment: config.alignment || 'right',
+                    account_button: config.account_button || 'left',
+                    invert_buttons: config.invert_buttons === 1 || config.invert_buttons === true,
+                    invert_icons_submenus: config.invert_icons_submenus === 1 || config.invert_icons_submenus === true,
+                    close_start_menu: config.close_start_menu === 1 || config.close_start_menu === true,
+                    button_spacing: parseInt(config.button_spacing) || 0,
+                    container_margin_left: parseInt(config.container_margin_left) || -16,
+                    container_margin_right: parseInt(config.container_margin_right) || -16
+                };
+            } else if (config.modSettings) {
+                modSettings = config.modSettings;
+            }
+
+            function convertSubmenu(items) {
+                if (!items || !Array.isArray(items)) return [];
+                const validItems = items.filter(item => {
+                    if (typeof item === 'string') return item !== '';
+                    if (typeof item === 'object' && item !== null) {
+                        return (item.name && item.name !== '') ||
+                               (item.icon && item.icon !== '') ||
+                               (Array.isArray(item.action) && item.action.length > 0 && item.action[0] !== '') ||
+                               (typeof item.action === 'string' && item.action !== '');
+                    }
+                    return false;
+                });
+                return validItems.map(item => ({
+                    name: item.name || '',
+                    icon: item.icon || '',
+                    action: Array.isArray(item.action) ? item.action.map(a => typeof a === 'string' ? a : String(a || '')) : [String(item.action || '')],
+                    submenu: item.submenu ? convertSubmenu(item.submenu) : []
+                }));
+            }
+
+            if (config.buttons && config.buttons.length > 0) {
+                buttons = config.buttons.map(btn => {
+                    let action = [''];
+                    if (Array.isArray(btn.Action)) {
+                        action = btn.Action.map(a => typeof a === 'string' ? a : String(a || '')).filter(a => a !== undefined);
+                    } else if (typeof btn.Action === 'string' && btn.Action !== '') {
+                        action = [btn.Action];
+                    }
+                    if (action.length === 0) action = [''];
+
+                    const converted = {
+                        preset: btn.Preset || 'custom',
+                        name: btn.Name || '',
+                        icon: btn.Icon || '',
+                        action,
+                        submenu: [],
+                        rightClickSubmenu: []
+                    };
+                    if (btn.submenu && Array.isArray(btn.submenu)) {
+                        const clean = convertSubmenu(btn.submenu);
+                        if (clean.length > 0) converted.submenu = clean;
+                    }
+                    if (btn.rightClickSubmenu && Array.isArray(btn.rightClickSubmenu)) {
+                        const clean = convertSubmenu(btn.rightClickSubmenu);
+                        if (clean.length > 0) converted.rightClickSubmenu = clean;
+                    }
+                    return converted;
+                });
+                selectedButtonIndex = null;
+                selectedMenuItem = null;
+                rightClickActive = {};
+                render();
+                return true;
+            } else {
+                alert('No buttons found in configuration.');
+                return false;
+            }
+        }
+
+        function resetToDefault() {
+            if (confirm('Reset all settings to default? This will clear all buttons and restore default configuration.')) {
+                modSettings = {
+                    preset_language: 'en',
+                    alignment: 'right',
+                    account_button: 'left',
+                    invert_buttons: true,
+                    invert_icons_submenus: false,
+                    close_start_menu: true,
+                    button_spacing: 0,
+                    container_margin_left: -16,
+                    container_margin_right: -16
+                };
+
+                buttons = [
+                    { preset: 'menu_shutdown', name: '', icon: '', action: ['press:Win+X;U'], submenu: [], rightClickSubmenu: [] },
+                    { preset: 'settings', name: '', icon: '', action: ['ms-settings:'], submenu: [], rightClickSubmenu: [] },
+                    { preset: 'explorer', name: '', icon: '', action: ['~'], submenu: [], rightClickSubmenu: [] }
+                ];
+
+                selectedButtonIndex = null;
+                selectedMenuItem = null;
+                rightClickActive = {};
+                showingModSettings = true;
+
+                render();
+                alert('Settings reset to default successfully!');
+            }
+        }
+
+        function updateButton(field, value) {
+            if (selectedButtonIndex !== null) {
+                buttons[selectedButtonIndex][field] = value;
+                
+                if (field === 'preset') {
+                    if (value === 'custom') {
+                        const preset = presets['custom'];
+                        if (preset) {
+                            buttons[selectedButtonIndex].name = preset.name;
+                            buttons[selectedButtonIndex].icon = preset.icon;
+                        }
+                    } else {
+                        buttons[selectedButtonIndex].name = '';
+                        buttons[selectedButtonIndex].icon = '';
+                    }
+                    render();
+                } else {
+                    renderButtons();
+                }
+            }
+        }
+
+        function decodeIcon(iconStr) {
+            if (!iconStr) return '&#xE783;';
+            
+            // Ensure it's a string
+            if (typeof iconStr !== 'string') iconStr = String(iconStr);
+
+            if (iconStr.includes('\\u')) {
+                const hex = iconStr.replace('\\u', '');
+                return `&#x${hex};`;
+            }
+
+            if (/^[0-9A-Fa-f]{4,5}$/.test(iconStr)) {
+                return `&#x${iconStr};`;
+            }
+
+            if (iconStr.startsWith('&#x')) {
+                return iconStr;
+            }
+
+            // If it looks like a file path (contains . or / or \), show photo icon with lower opacity
+            if (iconStr.includes('.') || iconStr.includes('/') || iconStr.includes('\\')) {
+                return '<span style="opacity:0.45;">&#xEB9F;</span>';
+            }
+            
+            return iconStr;
+        }
+
+        function renderButtons() {
+            const mainContent = document.getElementById('main-content');
+            
+            const buttonsHTML = buttons.map((btn, index) => {
+                let displayIcon = btn.icon;
+                if (!displayIcon && btn.preset && presets[btn.preset]) {
+                    displayIcon = presets[btn.preset].icon;
+                }
+                const iconCode = decodeIcon(displayIcon);
+                
+                let displayName = btn.name;
+                if (!displayName && btn.preset && presets[btn.preset]) {
+                    displayName = presets[btn.preset].name;
+                }
+                
+                const isSelected = selectedButtonIndex === index;
+                const isCustomPreset = !btn.preset || btn.preset === 'custom';
+                const isLeftMenuItemSelected = selectedMenuItem && 
+                                              selectedMenuItem.buttonIndex === index && 
+                                              !selectedMenuItem.isRightClick;
+                const hasLeftMenu = isCustomPreset && btn.submenu && btn.submenu.length > 0;
+                const showLeftMenu = (isSelected || isLeftMenuItemSelected) && isCustomPreset && (hasLeftMenu || isSelected) && !rightClickActive[index];
+                const isRightMenuActive = rightClickActive[index] || false;
+                const isRightMenuItemSelected = selectedMenuItem && 
+                                               selectedMenuItem.buttonIndex === index && 
+                                               selectedMenuItem.isRightClick;
+                const hasRightMenu = isCustomPreset && btn.rightClickSubmenu && btn.rightClickSubmenu.length > 0;
+                const showRightMenu = (isRightMenuActive || isRightMenuItemSelected) && isCustomPreset;
+                
+                return `
+                    <div style="position: relative; display: inline-block;">
+                        ${showLeftMenu ? `
+                            <div class="context-menu show" style="position: absolute; bottom: 58px; left: 50%; transform: translateX(-50%);">
+                                ${renderContextMenuItems(btn.submenu || [], index, [], 0, false)}
+                            </div>
+                        ` : ''}
+                        ${showRightMenu ? `
+                            <div class="context-menu show" style="position: absolute; bottom: 58px; left: 50%; transform: translateX(-50%); border: 2px solid #252121;">
+                                ${renderContextMenuItems(btn.rightClickSubmenu || [], index, [], 0, true)}
+                            </div>
+                        ` : ''}
+                        <button 
+                            class="menu-button ${isSelected || isRightMenuActive ? 'selected' : ''}" 
+                            onclick="selectButton(${index})"
+                            oncontextmenu="selectButtonRightClick(${index}); event.preventDefault(); return false;"
+                            onauxclick="handleButtonMiddleClick(event, ${index})"
+                            draggable="true"
+                            ondragstart="handleButtonDragStart(event, ${index})"
+                            ondragover="handleButtonDragOver(event)"
+                            ondragleave="handleButtonDragLeave(event)"
+                            ondrop="handleButtonDrop(event, ${index})"
+                            ondragend="handleButtonDragEnd(event)"
+                            title="${displayName || 'Button ' + (index + 1)}"
+                        >
+                            ${iconCode}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            mainContent.innerHTML = `
+                <div class="buttons-row">
+                    ${buttonsHTML}
+                    <button class="add-button" onclick="addButton()" title="Add new button">+</button>
+                </div>
+            `;
+        }
+
+        function toggleRightClickMenu(index) {
+            const btn = buttons[index];
+            const isCustomPreset = !btn.preset || btn.preset === 'custom';
+            
+            if (!isCustomPreset) {
+                alert('Right-click submenu is only available for Custom preset buttons.');
+                return;
+            }
+
+            if (rightClickActive[index]) {
+                rightClickActive[index] = false;
+                if (selectedMenuItem && selectedMenuItem.buttonIndex === index && selectedMenuItem.isRightClick) {
+                    selectedMenuItem = null;
+                }
+            } else {
+                rightClickActive = {};
+                rightClickActive[index] = true;
+                if (!btn.rightClickSubmenu || btn.rightClickSubmenu.length === 0) {
+                    btn.rightClickSubmenu = [];
+                }
+            }
+            
+            render();
+        }
+
+        function selectButtonRightClick(index) {
+            const btn = buttons[index];
+            const isCustomPreset = !btn.preset || btn.preset === 'custom';
+            
+            if (!isCustomPreset) {
+                alert('Right-click submenu is only available for Custom preset buttons.');
+                return;
+            }
+
+            rightClickActive = {};
+            rightClickActive[index] = true;
+
+            if (!btn.rightClickSubmenu || btn.rightClickSubmenu.length === 0) {
+                btn.rightClickSubmenu = [];
+            }
+
+            selectedButtonIndex = index;
+            selectedMenuItem = null;
+            showingModSettings = false;
+            
+            render();
+        }
+
+        let zoom = 1;
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let startX = 0;
+        let startY = 0;
+
+        function initPanZoom() {
+            const previewArea = document.getElementById('preview-area');
+            const sceneContainer = document.getElementById('scene-container');
+
+            previewArea.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                const newZoom = Math.max(0.5, Math.min(2, zoom + delta));
+
+                const rect = previewArea.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left - rect.width / 2;
+                const mouseY = e.clientY - rect.top - rect.height / 2;
+                
+                const zoomRatio = newZoom / zoom;
+                panX = mouseX - (mouseX - panX) * zoomRatio;
+                panY = mouseY - (mouseY - panY) * zoomRatio;
+
+                // Clamp pan after zoom too
+                const maxPan = 500;
+                panX = Math.max(-maxPan, Math.min(maxPan, panX));
+                panY = Math.max(-maxPan, Math.min(maxPan, panY));
+                
+                zoom = newZoom;
+                updateTransform();
+            });
+
+            previewArea.addEventListener('mousedown', (e) => {
+                if (e.target === previewArea || e.target === sceneContainer) {
+                    isPanning = true;
+                    startX = e.clientX - panX;
+                    startY = e.clientY - panY;
+                    previewArea.classList.add('panning');
+                    e.preventDefault();
+                }
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isPanning) {
+                    const newPanX = e.clientX - startX;
+                    const newPanY = e.clientY - startY;
+
+                    const maxPan = 500;
+                    panX = Math.max(-maxPan, Math.min(maxPan, newPanX));
+                    panY = Math.max(-maxPan, Math.min(maxPan, newPanY));
+                    updateTransform();
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isPanning) {
+                    isPanning = false;
+                    previewArea.classList.remove('panning');
+                }
+            });
+        }
+
+        function updateTransform() {
+            const sceneContainer = document.getElementById('scene-container');
+            const zoomInfo = document.getElementById('zoom-info');
+            
+            sceneContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+            zoomInfo.textContent = Math.round(zoom * 100) + '%';
+        }
+
+        function zoomIn() {
+            zoom = Math.min(2, zoom + 0.1);
+            updateTransform();
+        }
+
+        function zoomOut() {
+            zoom = Math.max(0.5, zoom - 0.1);
+            updateTransform();
+        }
+
+        function resetZoom() {
+            zoom = 1;
+            panX = 0;
+            panY = 0;
+            updateTransform();
+        }
+
+        function renderSidebar() {
+            const sidebarContent = document.getElementById('sidebar-content');
+            const sidebarTitle = document.getElementById('sidebar-title');
+            const sidebarSubtitle = document.getElementById('sidebar-subtitle');
+            const settingsBtn = document.getElementById('settingsBtn');
+
+            if (showingModSettings) {
+                settingsBtn.classList.add('active');
+            } else {
+                settingsBtn.classList.remove('active');
+            }
+
+            const textualBtn = document.getElementById('textualBtn');
+            if (textualBtn) {
+                if (isTextualMode) {
+                    textualBtn.classList.add('active');
+                } else {
+                    textualBtn.classList.remove('active');
+                }
+            }
+
+            if (isTextualMode) {
+                sidebarTitle.textContent = 'Textual Mode';
+                sidebarSubtitle.textContent = 'Edit config as YAML text';
+                const yaml = generateYAMLConfig();
+                sidebarContent.innerHTML = `
+                    <div style="display:flex; flex-direction:column; gap:10px; height:100%;">
+                        <div style="font-size:12px; color:#888;">Edit the YAML below and click Apply to update the scene.</div>
+                        <textarea id="textualModeArea" style="
+                            flex:1; min-height:300px; width:100%;
+                            background:#151515; border:1px solid #3a3a3a;
+                            border-radius:6px; color:#e0e0e0;
+                            font-family:'Consolas',monospace; font-size:12px;
+                            padding:10px; resize:vertical; outline:none;
+                            line-height:1.5;
+                        ">${yaml.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn btn-primary" style="flex:1;" onclick="applyTextualEdit(document.getElementById('textualModeArea'))">Apply</button>
+                            <button class="btn btn-danger" style="flex:1;" onclick="exitTextualMode()">Exit</button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            if (showingModSettings) {
+                sidebarTitle.textContent = 'Mod Settings';
+                sidebarSubtitle.textContent = 'Global configuration';
+
+                sidebarContent.innerHTML = `
+                    <div class="form-group">
+                        <label class="form-label">Preset Language</label>
+                        <select class="form-select" id="preset_language" onchange="updateModSetting('preset_language', this.value)">
+                            <option value="en" ${modSettings.preset_language === 'en' ? 'selected' : ''}>English</option>
+                            <option value="ru" ${modSettings.preset_language === 'ru' ? 'selected' : ''}>Russian (Русский)</option>
+                        </select>
+                        <span class="form-hint">Language for preset button tooltip names</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Button Alignment</label>
+                        <select class="form-select" id="alignment" onchange="updateModSetting('alignment', this.value)">
+                            <option value="left" ${modSettings.alignment === 'left' ? 'selected' : ''}>Left</option>
+                            <option value="center" ${modSettings.alignment === 'center' ? 'selected' : ''}>Center</option>
+                            <option value="right" ${modSettings.alignment === 'right' ? 'selected' : ''}>Right</option>
+                        </select>
+                        <span class="form-hint">Horizontal alignment of buttons in Start menu</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Account Button</label>
+                        <select class="form-select" id="account_button" onchange="updateModSetting('account_button', this.value)">
+                            <option value="left" ${modSettings.account_button === 'left' ? 'selected' : ''}>Left</option>
+                            <option value="center" ${modSettings.account_button === 'center' ? 'selected' : ''}>Center</option>
+                            <option value="right" ${modSettings.account_button === 'right' ? 'selected' : ''}>Right</option>
+                            <option value="hide" ${modSettings.account_button === 'hide' ? 'selected' : ''}>Hide</option>
+                        </select>
+                        <span class="form-hint">Position or visibility of account avatar button</span>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="toggle-group">
+                            <span class="toggle-label">Invert Button Order</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="invert_buttons" ${modSettings.invert_buttons ? 'checked' : ''} 
+                                    onchange="updateModSetting('invert_buttons', this.checked)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <span class="form-hint">Reverses the order buttons appear</span>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="toggle-group">
+                            <span class="toggle-label">Invert Icons in Submenus</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="invert_icons_submenus" ${modSettings.invert_icons_submenus ? 'checked' : ''} 
+                                    onchange="updateModSetting('invert_icons_submenus', this.checked)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <span class="form-hint">Reverses icon order in submenus</span>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="toggle-group">
+                            <span class="toggle-label">Close Start Menu After Click</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="close_start_menu" ${modSettings.close_start_menu ? 'checked' : ''} 
+                                    onchange="updateModSetting('close_start_menu', this.checked)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <span class="form-hint">Auto-close Start menu after clicking buttons</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Button Spacing (px)</label>
+                        <input type="number" class="form-input" id="button_spacing" value="${modSettings.button_spacing}" 
+                            oninput="updateModSetting('button_spacing', parseInt(this.value))" />
+                        <span class="form-hint">Margin between buttons</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Container Left Margin (px)</label>
+                        <input type="number" class="form-input" id="container_margin_left" value="${modSettings.container_margin_left}" 
+                            oninput="updateModSetting('container_margin_left', parseInt(this.value))" />
+                        <span class="form-hint">Left margin of container</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Container Right Margin (px)</label>
+                        <input type="number" class="form-input" id="container_margin_right" value="${modSettings.container_margin_right}" 
+                            oninput="updateModSetting('container_margin_right', parseInt(this.value))" />
+                        <span class="form-hint">Right margin of container</span>
+                    </div>
+                `;
+                return;
+            }
+
+            if (selectedMenuItem) {
+                const isRightClick = selectedMenuItem.isRightClick || false;
+                const menuType = isRightClick ? 'rightClickSubmenu' : 'submenu';
+
+                if (selectedMenuItem.path.length === 0) {
+                    return;
+                }
+
+                let target = buttons[selectedMenuItem.buttonIndex][menuType];
+                for (let i = 0; i < selectedMenuItem.path.length - 1; i++) {
+                    target = target[selectedMenuItem.path[i]].submenu;
+                }
+                const menuItem = target[selectedMenuItem.path[selectedMenuItem.path.length - 1]];
+                const hasSubmenu = menuItem.submenu && menuItem.submenu.length > 0;
+
+                if (!Array.isArray(menuItem.action)) {
+                    menuItem.action = menuItem.action ? [menuItem.action] : [''];
+                }
+
+                sidebarTitle.textContent = menuItem.name || 'Menu Item';
+                sidebarSubtitle.textContent = `${isRightClick ? 'Right-click' : 'Left-click'} menu - Level ${selectedMenuItem.path.length}`;
+
+                const actionItemsHTML = menuItem.action.map((act, idx) => `
+                    <div class="action-item">
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            value="${act || ''}"
+                            ${hasSubmenu ? 'disabled' : ''}
+                            oninput="updateMenuItemAction(${idx}, this.value)"
+                            placeholder="E.g., cmd:shutdown /s /f /t 0"
+                        />
+                        ${menuItem.action.length > 1 ? `
+                            <button class="action-item-btn remove" onclick="removeMenuItemAction(${idx})" ${hasSubmenu ? 'disabled' : ''} title="Remove action">-</button>
+                        ` : ''}
+                    </div>
+                `).join('');
+
+                sidebarContent.innerHTML = `
+                    <div class="form-group">
+                        <label class="form-label">Name</label>
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            value="${menuItem.name || ''}"
+                            oninput="updateMenuItem('name', this.value)"
+                            placeholder="Menu item name"
+                        />
+                        <span class="form-hint">Displayed in menu</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Icon</label>
+                        <div class="icon-input-group">
+                            <input 
+                                type="text" 
+                                class="form-input" 
+                                id="menuItemIconInput"
+                                value="${menuItem.icon || ''}"
+                                oninput="updateMenuItem('icon', this.value)"
+                                placeholder="E.g., E7E8 or \\uE7E8"
+                            />
+                            <button class="icon-browse-btn" onclick="openIconBrowser((icon) => { document.getElementById('menuItemIconInput').value = icon; updateMenuItem('icon', icon); })" title="Browse Icons">&#xE721;</button>
+                        </div>
+                        <span class="form-hint">Segoe Fluent Icons code or file path</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" style="display:flex;align-items:center;gap:6px;">Action <button onclick="openActionInfoModal();event.stopPropagation();" style="background:none;border:none;cursor:pointer;color:#888;font-family:'Segoe Fluent Icons';font-size:14px;padding:0;line-height:1;transition:color 0.2s;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#888'" title="Action format help">&#xE946;</button></label>
+                        <div class="action-list">
+                            ${actionItemsHTML}
+                        </div>
+                        ${!hasSubmenu ? `
+                            <button class="action-item-btn add" onclick="addMenuItemAction()" style="margin-top: 8px; width: 100%;" title="Add action">+ Add Action</button>
+                        ` : ''}
+                        <span class="form-hint">${hasSubmenu ? 'Not available when item has submenu' : 'Commands execute sequentially (see mod description for formats)'}</span>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-danger" onclick="deleteMenuItem()">Delete</button>
+                    </div>
+                `;
+                return;
+            }
+
+            if (selectedButtonIndex === null || !buttons[selectedButtonIndex]) {
+                settingsBtn.classList.remove('active');
+                sidebarTitle.textContent = 'Button Settings';
+                sidebarSubtitle.textContent = 'Select a button to edit';
+                sidebarContent.innerHTML = '<div class="empty">Click on a button to edit its properties</div>';
+                return;
+            }
+
+            const btn = buttons[selectedButtonIndex];
+            const hasSubmenu = btn.submenu && btn.submenu.length > 0;
+            const isCustomPreset = !btn.preset || btn.preset === 'custom';
+
+            if (!Array.isArray(btn.action)) {
+                btn.action = btn.action ? [btn.action] : [''];
+            }
+
+            let displayName = btn.name;
+            if (!displayName && btn.preset && presets[btn.preset]) {
+                displayName = presets[btn.preset].name;
+            }
+
+            sidebarTitle.textContent = displayName || `Button ${selectedButtonIndex + 1}`;
+            sidebarSubtitle.textContent = `Position: ${selectedButtonIndex + 1} of ${buttons.length}`;
+
+            const presetOptions = Object.keys(presets).map(key => 
+                `<option value="${key}" ${btn.preset === key ? 'selected' : ''}>${presets[key].name}</option>`
+            ).join('');
+
+            const actionItemsHTML = btn.action.map((act, idx) => `
+                <div class="action-item">
+                    <input 
+                        type="text" 
+                        class="form-input" 
+                        value="${act || ''}"
+                        ${hasSubmenu ? 'disabled' : ''}
+                        oninput="updateButtonAction(${idx}, this.value)"
+                        placeholder="E.g., cmd:shutdown /s /f /t 0"
+                    />
+                    ${btn.action.length > 1 ? `
+                        <button class="action-item-btn remove" onclick="removeButtonAction(${idx})" ${hasSubmenu ? 'disabled' : ''} title="Remove action">-</button>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            sidebarContent.innerHTML = `
+                <div class="form-group">
+                    <label class="form-label">Preset</label>
+                    <select class="form-select" onchange="updateButton('preset', this.value)">
+                        ${presetOptions}
+                    </select>
+                    <span class="form-hint">Select a preset or choose Custom</span>
+                </div>
+
+                ${!isCustomPreset ? `
+                    <div class="form-group">
+                        <div style="padding: 12px; background: #2a2a2a; border-radius: 6px; border-left: 3px solid #0078d4;">
+                            <div style="font-size: 13px; color: #e0e0e0; margin-bottom: 4px;">ℹ️ Preset Mode</div>
+                            <div style="font-size: 12px; color: #888;">Submenu is only available for Custom preset. Change Preset to Custom to add submenu items.</div>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <div class="form-group">
+                    <label class="form-label">Name</label>
+                    <input 
+                        type="text" 
+                        class="form-input" 
+                        value="${btn.name || ''}"
+                        oninput="updateButton('name', this.value)"
+                        placeholder="Button name (tooltip)"
+                    />
+                    <span class="form-hint">Shown on hover</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Icon</label>
+                    <div class="icon-input-group">
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            id="buttonIconInput"
+                            value="${btn.icon || ''}"
+                            oninput="updateButton('icon', this.value)"
+                            placeholder="E.g., E7E8 or \\uE7E8"
+                        />
+                        <button class="icon-browse-btn" onclick="openIconBrowser((icon) => { document.getElementById('buttonIconInput').value = icon; updateButton('icon', icon); })" title="Browse Icons">&#xE721;</button>
+                    </div>
+                    <span class="form-hint">Segoe Fluent Icons code or file path</span>
+                </div>
+
+                ${isCustomPreset ? `
+                    <div class="form-group">
+                        <label class="form-label" style="display:flex;align-items:center;gap:6px;">Action <button onclick="openActionInfoModal();event.stopPropagation();" style="background:none;border:none;cursor:pointer;color:#888;font-family:'Segoe Fluent Icons';font-size:14px;padding:0;line-height:1;transition:color 0.2s;" onmouseover="this.style.color='#e0e0e0'" onmouseout="this.style.color='#888'" title="Action format help">&#xE946;</button></label>
+                        <div class="action-list">
+                            ${actionItemsHTML}
+                        </div>
+                        ${!hasSubmenu ? `
+                            <button class="action-item-btn add" onclick="addButtonAction()" style="margin-top: 8px; width: 100%;" title="Add action">+ Add Action</button>
+                        ` : ''}
+                        <span class="form-hint">${hasSubmenu ? 'Not available when button has submenu' : 'Commands execute sequentially (see mod description for formats)'}</span>
+                    </div>
+                ` : ''}
+
+                <div class="action-buttons">
+                    <button class="btn btn-danger" onclick="deleteButton(${selectedButtonIndex})">Delete</button>
+                </div>
+            `;
+        }
+
+        function updateMenuItem(field, value) {
+            if (selectedMenuItem) {
+                const isRightClick = selectedMenuItem.isRightClick || false;
+                const menuType = isRightClick ? 'rightClickSubmenu' : 'submenu';
+
+                if (selectedMenuItem.path.length === 0) {
+                    return;
+                }
+                
+                let target = buttons[selectedMenuItem.buttonIndex][menuType];
+                for (let i = 0; i < selectedMenuItem.path.length - 1; i++) {
+                    target = target[selectedMenuItem.path[i]].submenu;
+                }
+                const menuItem = target[selectedMenuItem.path[selectedMenuItem.path.length - 1]];
+                menuItem[field] = value;
+                renderButtons();
+            }
+        }
+
+        function deleteMenuItem() {
+            if (selectedMenuItem && selectedMenuItem.path.length > 0 && confirm('Delete this menu item?')) {
+                const isRightClick = selectedMenuItem.isRightClick || false;
+                const menuType = isRightClick ? 'rightClickSubmenu' : 'submenu';
+                
+                let target = buttons[selectedMenuItem.buttonIndex][menuType];
+                for (let i = 0; i < selectedMenuItem.path.length - 1; i++) {
+                    target = target[selectedMenuItem.path[i]].submenu;
+                }
+                target.splice(selectedMenuItem.path[selectedMenuItem.path.length - 1], 1);
+                selectedMenuItem = null;
+                render();
+            }
+        }
+
+        function updateModSetting(key, value) {
+            modSettings[key] = value;
+        }
+
+        function updateButtonAction(index, value) {
+            if (selectedButtonIndex !== null) {
+                if (!Array.isArray(buttons[selectedButtonIndex].action)) {
+                    buttons[selectedButtonIndex].action = [''];
+                }
+                buttons[selectedButtonIndex].action[index] = value;
+                renderButtons();
+            }
+        }
+
+        function addButtonAction() {
+            if (selectedButtonIndex !== null) {
+                if (!Array.isArray(buttons[selectedButtonIndex].action)) {
+                    buttons[selectedButtonIndex].action = [''];
+                }
+                buttons[selectedButtonIndex].action.push('');
+                render();
+            }
+        }
+
+        function removeButtonAction(index) {
+            if (selectedButtonIndex !== null) {
+                if (!Array.isArray(buttons[selectedButtonIndex].action)) {
+                    buttons[selectedButtonIndex].action = [''];
+                }
+                if (buttons[selectedButtonIndex].action.length > 1) {
+                    buttons[selectedButtonIndex].action.splice(index, 1);
+                    render();
+                }
+            }
+        }
+
+        function updateMenuItemAction(index, value) {
+            if (selectedMenuItem && selectedMenuItem.path.length > 0) {
+                const isRightClick = selectedMenuItem.isRightClick || false;
+                const menuType = isRightClick ? 'rightClickSubmenu' : 'submenu';
+                
+                let target = buttons[selectedMenuItem.buttonIndex][menuType];
+                for (let i = 0; i < selectedMenuItem.path.length - 1; i++) {
+                    target = target[selectedMenuItem.path[i]].submenu;
+                }
+                const menuItem = target[selectedMenuItem.path[selectedMenuItem.path.length - 1]];
+                if (!Array.isArray(menuItem.action)) {
+                    menuItem.action = [''];
+                }
+                menuItem.action[index] = value;
+                renderButtons();
+            }
+        }
+
+        function addMenuItemAction() {
+            if (selectedMenuItem && selectedMenuItem.path.length > 0) {
+                const isRightClick = selectedMenuItem.isRightClick || false;
+                const menuType = isRightClick ? 'rightClickSubmenu' : 'submenu';
+                
+                let target = buttons[selectedMenuItem.buttonIndex][menuType];
+                for (let i = 0; i < selectedMenuItem.path.length - 1; i++) {
+                    target = target[selectedMenuItem.path[i]].submenu;
+                }
+                const menuItem = target[selectedMenuItem.path[selectedMenuItem.path.length - 1]];
+                if (!Array.isArray(menuItem.action)) {
+                    menuItem.action = [''];
+                }
+                menuItem.action.push('');
+                render();
+            }
+        }
+
+        function removeMenuItemAction(index) {
+            if (selectedMenuItem && selectedMenuItem.path.length > 0) {
+                const isRightClick = selectedMenuItem.isRightClick || false;
+                const menuType = isRightClick ? 'rightClickSubmenu' : 'submenu';
+                
+                let target = buttons[selectedMenuItem.buttonIndex][menuType];
+                for (let i = 0; i < selectedMenuItem.path.length - 1; i++) {
+                    target = target[selectedMenuItem.path[i]].submenu;
+                }
+                const menuItem = target[selectedMenuItem.path[selectedMenuItem.path.length - 1]];
+                if (!Array.isArray(menuItem.action)) {
+                    menuItem.action = [''];
+                }
+                if (menuItem.action.length > 1) {
+                    menuItem.action.splice(index, 1);
+                    render();
+                }
+            }
+        }
+
+        function render() {
+            renderButtons();
+            renderSidebar();
+        }
+
+        function generateYAMLConfig() {
+            function convertSubmenu(items, level = 1) {
+                if (!items || !Array.isArray(items) || items.length === 0) {
+                    if (level >= max_submenu_levels) {
+                        return [{ name: '', icon: '', action: [''] }];
+                    }
+                    return [{ name: '', icon: '', action: [''], submenu: convertSubmenu([], level + 1) }];
+                }
+                return items.map(item => {
+                    const converted = {
+                        name: item.name || '',
+                        icon: item.icon || '',
+                        action: Array.isArray(item.action) ? item.action : [item.action || '']
+                    };
+                    if (level < max_submenu_levels) {
+                        converted.submenu = convertSubmenu(item.submenu, level + 1);
+                    }
+                    return converted;
+                });
+            }
+
+            const config = {
+                preset_language: modSettings.preset_language,
+                alignment: modSettings.alignment,
+                account_button: modSettings.account_button,
+                invert_buttons: modSettings.invert_buttons ? 1 : 0,
+                invert_icons_submenus: modSettings.invert_icons_submenus ? 1 : 0,
+                close_start_menu: modSettings.close_start_menu ? 1 : 0,
+                button_spacing: modSettings.button_spacing,
+                container_margin_left: modSettings.container_margin_left,
+                container_margin_right: modSettings.container_margin_right,
+                buttons: buttons.map(btn => ({
+                    Preset: btn.preset || 'custom',
+                    Name: btn.name || '',
+                    Icon: btn.icon || '',
+                    Action: Array.isArray(btn.action) ? btn.action : [btn.action || ''],
+                    submenu: convertSubmenu(btn.submenu, 1),
+                    rightClickSubmenu: convertSubmenu(btn.rightClickSubmenu, 1)
+                }))
+            };
+
+            let output = '';
+            output += `preset_language: ${config.preset_language}\n`;
+            output += `alignment: ${config.alignment}\n`;
+            output += `account_button: ${config.account_button}\n`;
+            output += `invert_buttons: ${config.invert_buttons}\n`;
+            output += `invert_icons_submenus: ${config.invert_icons_submenus}\n`;
+            output += `close_start_menu: ${config.close_start_menu}\n`;
+            output += `button_spacing: ${config.button_spacing}\n`;
+            output += `container_margin_left: ${config.container_margin_left}\n`;
+            output += `container_margin_right: ${config.container_margin_right}\n`;
+            output += `buttons:\n`;
+
+            function outputSubmenu(items, indent) {
+                items.forEach(item => {
+                    output += `${indent}- name: '${item.name}'\n`;
+                    output += `${indent}  icon: '${item.icon}'\n`;
+                    output += `${indent}  action:\n`;
+                    item.action.forEach(act => {
+                        output += `${indent}    - '${act}'\n`;
+                    });
+                    if (item.submenu && item.submenu.length > 0) {
+                        output += `${indent}  submenu:\n`;
+                        outputSubmenu(item.submenu, indent + '    ');
+                    }
+                });
+            }
+            
+            config.buttons.forEach(btn => {
+                output += `  - Preset: ${btn.Preset}\n`;
+                output += `    Name: '${btn.Name}'\n`;
+                output += `    Icon: '${btn.Icon}'\n`;
+                output += `    Action:\n`;
+                btn.Action.forEach(act => {
+                    output += `      - '${act}'\n`;
+                });
+                output += `    submenu:\n`;
+                outputSubmenu(btn.submenu, '      ');
+                output += `    rightClickSubmenu:\n`;
+                outputSubmenu(btn.rightClickSubmenu, '      ');
+            });
+            
+            return output;
+        }
+
+        function exportConfig() {
+            const output = generateYAMLConfig();
+            
+            const blob = new Blob([output], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'start-menu-buttons-config.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importConfig() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json,.txt';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        try {
+                            const content = ev.target.result;
+                            let config;
+                            try { config = JSON.parse(content); }
+                            catch { config = parseSimpleYAML(content); }
+                            const ok = applyImportedConfig(config);
+                            if (ok) alert(`Configuration imported successfully! ${buttons.length} button(s) loaded.`);
+                        } catch (err) {
+                            alert('Error importing config: ' + err.message);
+                            console.error('Import error:', err);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        function parseSimpleYAML(yamlText) {
+            const lines = yamlText.split('\n');
+            const result = {};
+            const stack = [{ obj: result, indent: -1, key: null }];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (!line.trim() || line.trim().startsWith('#')) continue;
+                
+                const indent = line.search(/\S/);
+                const trimmed = line.trim();
+
+                while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
+                    stack.pop();
+                }
+                
+                const parent = stack[stack.length - 1];
+                const current = parent.obj;
+
+                if (trimmed.startsWith('- ')) {
+                    const content = trimmed.substring(2);
+
+                    if (!Array.isArray(current)) {
+                        console.error('Expected array but got object at line', i);
+                        continue;
+                    }
+                    
+                    // Check if it's a key:value object item
+                    // Only treat as object if the key is a known YAML object field name
+                    const colonIdx = content.indexOf(':');
+                    const knownKeys = new Set(['name', 'icon', 'action', 'submenu', 'Preset', 'Name', 'Icon', 'Action', 'rightClickSubmenu']);
+                    const potentialKey = colonIdx > 0 ? content.substring(0, colonIdx).trim() : '';
+                    const isObjectItem = colonIdx > 0 && knownKeys.has(potentialKey);
+                    
+                    if (isObjectItem) {
+                        const newObj = {};
+                        current.push(newObj);
+                        const key = content.substring(0, colonIdx).trim();
+                        let value = content.substring(colonIdx + 1).trim();
+                        
+                        if (value === '') {
+                            newObj[key] = null;
+                            stack.push({ obj: newObj, indent: indent, key: key, waitingForValue: true });
+                        } else {
+                            if ((value.startsWith("'") && value.endsWith("'")) || 
+                                (value.startsWith('"') && value.endsWith('"'))) {
+                                value = value.slice(1, -1);
+                            }
+                            newObj[key] = value;
+                            stack.push({ obj: newObj, indent: indent, key: null });
+                        }
+                    } else {
+                        // Plain string value
+                        let value = content;
+                        if ((value.startsWith("'") && value.endsWith("'")) || 
+                            (value.startsWith('"') && value.endsWith('"'))) {
+                            value = value.slice(1, -1);
+                        }
+                        current.push(value);
+                    }
+                } else if (trimmed.includes(':')) {
+                    const colonIndex = trimmed.indexOf(':');
+                    const key = trimmed.substring(0, colonIndex).trim();
+                    let value = trimmed.substring(colonIndex + 1).trim();
+                    
+                    if (value === '') {
+                        const newContainer = [];
+                        current[key] = newContainer;
+                        stack.push({ obj: newContainer, indent: indent, key: key });
+                    } else {
+                        if ((value.startsWith("'") && value.endsWith("'")) || 
+                            (value.startsWith('"') && value.endsWith('"'))) {
+                            value = value.slice(1, -1);
+                        }
+
+                        if (value === '1' || value === 'true') {
+                            value = true;
+                        } else if (value === '0' || value === 'false') {
+                            value = false;
+                        } else if (!isNaN(value) && value !== '') {
+                            const num = parseFloat(value);
+                            if (!isNaN(num)) value = num;
+                        }
+
+                        if (parent.waitingForValue && parent.key) {
+                            parent.obj[parent.key] = value;
+                            parent.waitingForValue = false;
+                        } else {
+                            current[key] = value;
+                        }
+                    }
+                }
+            }
+            
+            return result;
+        }
+
+        function copyConfig() {
+            const output = generateYAMLConfig();
+            
+            navigator.clipboard.writeText(output).then(() => {
+                alert('Configuration copied to clipboard!');
+            }).catch(err => {
+                alert('Failed to copy: ' + err.message);
+            });
+        }
+
+        function showContextMenu(event, buttonIndex) {
+
+        }
+
+        function renderContextMenuItems(items, buttonIndex, path, level = 0, isRightClick = false) {
+            if (level >= max_submenu_levels) return '';
+
+            let html = '';
+            
+            items.forEach((item, index) => {
+                const iconCode = decodeIcon(item.icon || '\\uE783');
+                const itemPath = [...path, index];
+                const hasSubmenu = item.submenu && item.submenu.length > 0;
+                const pathStr = JSON.stringify(itemPath).replace(/"/g, '&quot;');
+                const isSelected = selectedMenuItem && 
+                                 selectedMenuItem.buttonIndex === buttonIndex && 
+                                 selectedMenuItem.isRightClick === isRightClick &&
+                                 JSON.stringify(selectedMenuItem.path) === JSON.stringify(itemPath);
+                
+                let showSubmenu = false;
+                if (hasSubmenu && selectedMenuItem && 
+                    selectedMenuItem.buttonIndex === buttonIndex && 
+                    selectedMenuItem.isRightClick === isRightClick) {
+                    if (selectedMenuItem.path.length > itemPath.length) {
+                        let matches = true;
+                        for (let i = 0; i < itemPath.length; i++) {
+                            if (selectedMenuItem.path[i] !== itemPath[i]) {
+                                matches = false;
+                                break;
+                            }
+                        }
+                        showSubmenu = matches;
+                    } else if (selectedMenuItem.path.length === itemPath.length) {
+                        showSubmenu = isSelected;
+                    }
+                }
+                
+                html += `
+                    <div class="context-menu-item ${isSelected ? 'selected' : ''}" 
+                         style="position: relative;"
+                         draggable="true"
+                         ondragstart="handleMenuDragStart(event, ${buttonIndex}, ${pathStr}, ${isRightClick})"
+                         ondragover="handleMenuDragOver(event)"
+                         ondragleave="handleMenuDragLeave(event)"
+                         ondrop="handleMenuDrop(event, ${buttonIndex}, ${pathStr}, ${isRightClick})"
+                         ondragend="handleDragEnd(event)"
+                         onclick="selectMenuItem(${buttonIndex}, ${pathStr}, ${isRightClick}); event.stopPropagation();"
+                         onauxclick="handleMenuItemMiddleClick(event, ${buttonIndex}, ${pathStr}, ${isRightClick})">
+                        <span class="context-menu-icon">${iconCode}</span>
+                        <span class="context-menu-text">${item.name || 'Menu Item'}</span>
+                        <div class="context-menu-actions">
+                            ${!hasSubmenu && level < (max_submenu_levels - 1) ? `<button class="context-menu-btn" onclick="addSubmenuToItem(${buttonIndex}, ${pathStr}, ${isRightClick}); event.stopPropagation();" title="Add submenu">+</button>` : ''}
+                            ${hasSubmenu ? '<span class="context-menu-arrow">&#xE76C;</span>' : ''}
+                        </div>
+                        ${showSubmenu ? `
+                            <div class="context-menu show" style="position: absolute; left: 100%; top: 0; margin-left: 5px;">
+                                ${renderContextMenuItems(item.submenu, buttonIndex, itemPath, level + 1, isRightClick)}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            if (level < max_submenu_levels) {
+                html += `
+                    <div class="context-menu-add" onclick="addMenuItem(${buttonIndex}, ${JSON.stringify(path).replace(/"/g, '&quot;')}, ${isRightClick}); event.stopPropagation();">
+                        <span>+</span>
+                        <span>Add Item</span>
+                    </div>
+                `;
+            }
+
+            return html;
+        }
+
+        function addMenuItem(buttonIndex, path, isRightClick = false) {
+            const menuType = isRightClick ? 'rightClickSubmenu' : 'submenu';
+            const newItem = {
+                name: 'New Item',
+                icon: '\\uE783',
+                action: [''],
+                submenu: []
+            };
+
+            if (!buttons[buttonIndex][menuType]) {
+                buttons[buttonIndex][menuType] = [];
+            }
+
+            let target = buttons[buttonIndex][menuType];
+            for (let i = 0; i < path.length; i++) {
+                if (!target[path[i]].submenu) {
+                    target[path[i]].submenu = [];
+                }
+                target = target[path[i]].submenu;
+            }
+            
+            target.push(newItem);
+            render();
+        }
+
+        function addSubmenuToItem(buttonIndex, path, isRightClick = false) {
+            const menuType = isRightClick ? 'rightClickSubmenu' : 'submenu';
+            
+            if (!buttons[buttonIndex][menuType]) {
+                buttons[buttonIndex][menuType] = [];
+            }
+
+            let target = buttons[buttonIndex][menuType];
+            for (let i = 0; i < path.length - 1; i++) {
+                if (!target[path[i]].submenu) {
+                    target[path[i]].submenu = [];
+                }
+                target = target[path[i]].submenu;
+            }
+
+            const item = target[path[path.length - 1]];
+            if (!item.submenu) {
+                item.submenu = [];
+            }
+
+            const newItem = {
+                name: 'New Item',
+                icon: '\\uE783',
+                action: [''],
+                submenu: []
+            };
+            
+            item.submenu.push(newItem);
+
+            selectedMenuItem = { buttonIndex, path, isRightClick };
+            selectedButtonIndex = null;
+            showingModSettings = false;
+
+            render();
+        }
+
+        function selectMenuItem(buttonIndex, path, isRightClick = false) {
+            selectedMenuItem = { buttonIndex, path, isRightClick };
+            selectedButtonIndex = null;
+            showingModSettings = false;
+            render();
+        }
+
+        function hideContextMenu() {
+
+        }
+
+        let dragPlaceholder = null;
+
+        function handleButtonDragStart(event, index) {
+            draggedItem = { type: 'button', index };
+            event.target.classList.add('dragging');
+            document.body.classList.add('dragging-cursor');
+            event.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleButtonDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            
+            if (draggedItem && draggedItem.type === 'button') {
+                event.currentTarget.classList.add('drag-over');
+            }
+        }
+
+        function handleButtonDragLeave(event) {
+            event.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleButtonDrop(event, targetIndex) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+            
+            if (draggedItem && draggedItem.type === 'button') {
+                const fromIndex = draggedItem.index;
+                if (fromIndex !== targetIndex) {
+                    const [movedButton] = buttons.splice(fromIndex, 1);
+                    buttons.splice(targetIndex, 0, movedButton);
+
+                    if (selectedButtonIndex === fromIndex) {
+                        selectedButtonIndex = targetIndex;
+                    } else if (fromIndex < targetIndex && selectedButtonIndex > fromIndex && selectedButtonIndex <= targetIndex) {
+                        selectedButtonIndex--;
+                    } else if (fromIndex > targetIndex && selectedButtonIndex >= targetIndex && selectedButtonIndex < fromIndex) {
+                        selectedButtonIndex++;
+                    }
+                    
+                    render();
+                }
+            }
+        }
+
+        function handleButtonDragEnd(event) {
+            event.target.classList.remove('dragging');
+            document.body.classList.remove('dragging-cursor');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            draggedItem = null;
+        }
+
+        function handleMenuDragStart(event, buttonIndex, path, isRightClick = false) {
+            draggedItem = { type: 'menu', buttonIndex, path, isRightClick };
+            event.target.classList.add('dragging');
+            document.body.classList.add('dragging-cursor');
+            event.dataTransfer.effectAllowed = 'move';
+            event.stopPropagation();
+        }
+
+        function handleMenuDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.dataTransfer.dropEffect = 'move';
+            
+            if (draggedItem && draggedItem.type === 'menu') {
+                event.currentTarget.classList.add('drag-over');
+            }
+        }
+
+        function handleMenuDragLeave(event) {
+            event.stopPropagation();
+            event.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleMenuDrop(event, buttonIndex, targetPath, isRightClick = false) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.currentTarget.classList.remove('drag-over');
+            
+            if (draggedItem && draggedItem.type === 'menu') {
+                const sourcePath = draggedItem.path;
+                const sourceButtonIndex = draggedItem.buttonIndex;
+                const sourceIsRightClick = draggedItem.isRightClick || false;
+
+                if (sourceIsRightClick !== isRightClick) {
+                    alert('Cannot move items between left-click and right-click menus');
+                    return;
+                }
+                
+                const menuType = isRightClick ? 'rightClickSubmenu' : 'submenu';
+
+                if (sourceButtonIndex === buttonIndex && JSON.stringify(sourcePath) === JSON.stringify(targetPath)) {
+                    return;
+                }
+
+                if (sourceButtonIndex === buttonIndex && targetPath.length > sourcePath.length) {
+                    let isChild = true;
+                    for (let i = 0; i < sourcePath.length; i++) {
+                        if (sourcePath[i] !== targetPath[i]) {
+                            isChild = false;
+                            break;
+                        }
+                    }
+                    if (isChild) {
+                        alert('Cannot move item into its own submenu');
+                        return;
+                    }
+                }
+                
+                let sourceParent = buttons[sourceButtonIndex][menuType];
+                for (let i = 0; i < sourcePath.length - 1; i++) {
+                    sourceParent = sourceParent[sourcePath[i]].submenu;
+                }
+                const sourceItem = sourceParent[sourcePath[sourcePath.length - 1]];
+                let targetParent = buttons[buttonIndex][menuType];
+                for (let i = 0; i < targetPath.length - 1; i++) {
+                    targetParent = targetParent[targetPath[i]].submenu;
+                }
+                if (sourceButtonIndex === buttonIndex && sourceParent === targetParent) {
+                    const sourceIndex = sourcePath[sourcePath.length - 1];
+                    const targetIndex = targetPath[targetPath.length - 1];
+                    if (sourceIndex !== targetIndex) {
+                        const [movedItem] = sourceParent.splice(sourceIndex, 1);
+                        sourceParent.splice(targetIndex, 0, movedItem);
+                        if (selectedMenuItem && 
+                            selectedMenuItem.buttonIndex === buttonIndex && 
+                            selectedMenuItem.isRightClick === isRightClick) {
+                            if (JSON.stringify(selectedMenuItem.path) === JSON.stringify(sourcePath)) {
+                                selectedMenuItem.path = [...targetPath];
+                            }
+                        }
+                        
+                        render();
+                    }
+                } else {
+                    const movedItem = JSON.parse(JSON.stringify(sourceItem));
+                    sourceParent.splice(sourcePath[sourcePath.length - 1], 1);
+                    const targetIndex = targetPath[targetPath.length - 1];
+                    targetParent.splice(targetIndex, 0, movedItem);
+                    if (selectedMenuItem && 
+                        selectedMenuItem.buttonIndex === sourceButtonIndex && 
+                        selectedMenuItem.isRightClick === sourceIsRightClick &&
+                        JSON.stringify(selectedMenuItem.path) === JSON.stringify(sourcePath)) {
+                        selectedMenuItem = {
+                            buttonIndex: buttonIndex,
+                            path: [...targetPath],
+                            isRightClick: isRightClick
+                        };
+                    }
+                    render();
+                }
+            }
+        }
+
+        function handleDragEnd(event) {
+            event.target.classList.remove('dragging');
+            document.body.classList.remove('dragging-cursor');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            draggedItem = null;
+        }
+
+        /* ─── Header: title truncates letter-by-letter, hides fully when no room,
+               mid separator appears only when the two button groups get close ─── */
+        (function () {
+            const headerEl = document.querySelector('.header');
+            const title = document.getElementById('mainTitle');
+            const headerLinksEl = document.querySelector('.header-links');
+            const headerBtnsEl = document.querySelector('.header-btns');
+            const midSeparator = document.getElementById('headerMidSeparator');
+            if (!headerEl || !title) return;
+
+            const fullTitle = title.getAttribute('data-full-title') || title.textContent;
+            const WIDTH_EPSILON = 1.5; // absorbs canvas-vs-DOM sub-pixel measurement differences
+            let measureCanvas = null;
+            let separatorVisible = false;
+            let lastHeaderWidth = -1;
+
+            function textWidth(text, font) {
+                if (!measureCanvas) measureCanvas = document.createElement('canvas');
+                const ctx = measureCanvas.getContext('2d');
+                ctx.font = font;
+                return ctx.measureText(text).width;
+            }
+
+            function updateHeaderLayout() {
+                title.style.display = '';
+                title.textContent = fullTitle;
+
+                // getBoundingClientRect gives sub-pixel precision matching canvas measureText,
+                // unlike clientWidth which rounds and caused the title to truncate a few
+                // characters even when it actually fit.
+                const availableWidth = title.getBoundingClientRect().width + WIDTH_EPSILON;
+                const style = getComputedStyle(title);
+                const font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+                const ellipsis = '\u2026';
+
+                if (textWidth(fullTitle, font) > availableWidth) {
+                    const ellipsisWidth = textWidth(ellipsis, font);
+                    let fitText = '';
+                    for (let i = 1; i <= fullTitle.length; i++) {
+                        const candidate = fullTitle.slice(0, i);
+                        if (textWidth(candidate, font) + ellipsisWidth > availableWidth) break;
+                        fitText = candidate;
+                    }
+                    if (!fitText) {
+                        title.style.display = 'none';
+                    } else {
+                        title.textContent = fitText + ellipsis;
+                    }
+                }
+
+                if (headerLinksEl && headerBtnsEl && midSeparator) {
+                    const headerRect = headerEl.getBoundingClientRect();
+                    const linksRect = headerLinksEl.getBoundingClientRect();
+                    const btnsRect = headerBtnsEl.getBoundingClientRect();
+                    const gap = btnsRect.left - linksRect.right;
+                    // Hysteresis: different thresholds for showing vs hiding so the line
+                    // doesn't flicker on/off when the gap sits right at the boundary.
+                    if (!separatorVisible && gap < 16) {
+                        separatorVisible = true;
+                    } else if (separatorVisible && gap > 28) {
+                        separatorVisible = false;
+                    }
+                    if (separatorVisible) {
+                        const midX = (linksRect.right + btnsRect.left) / 2 - headerRect.left;
+                        midSeparator.style.left = midX + 'px';
+                        midSeparator.classList.add('visible');
+                    } else {
+                        midSeparator.classList.remove('visible');
+                    }
+                }
+            }
+
+            let rafId = null;
+            function scheduleHeaderUpdate() {
+                if (rafId) cancelAnimationFrame(rafId);
+                rafId = requestAnimationFrame(function () {
+                    rafId = null;
+                    // Skip redundant work if the header's own size hasn't actually changed
+                    // (mutating the title's text can otherwise re-trigger the observer).
+                    const currentWidth = headerEl.getBoundingClientRect().width;
+                    if (Math.abs(currentWidth - lastHeaderWidth) < 0.5 && lastHeaderWidth !== -1) {
+                        return;
+                    }
+                    lastHeaderWidth = currentWidth;
+                    updateHeaderLayout();
+                });
+            }
+
+            if (typeof ResizeObserver !== 'undefined') {
+                const ro = new ResizeObserver(scheduleHeaderUpdate);
+                ro.observe(headerEl);
+            } else {
+                window.addEventListener('resize', scheduleHeaderUpdate);
+            }
+            scheduleHeaderUpdate();
+            window.scheduleHeaderUpdate = scheduleHeaderUpdate;
+        })();
+
+        /* ─── Sidebar: drag-to-resize, always kept fully on-screen ─── */
+        (function () {
+            const container = document.getElementById('mainContainer');
+            const handle = document.getElementById('sidebarResizeHandle');
+            if (!container || !handle) return;
+
+            const MIN_WIDTH = 260;
+            const MAX_WIDTH_RATIO = 0.6;
+
+            function clampWidth(width) {
+                const maxWidth = Math.max(MIN_WIDTH, window.innerWidth * MAX_WIDTH_RATIO);
+                return Math.min(Math.max(width, MIN_WIDTH), maxWidth);
+            }
+
+            function applyWidth(width) {
+                const clamped = clampWidth(width);
+                container.style.setProperty('--sidebar-width', clamped + 'px');
+                container.classList.add('sidebar-resized');
+                if (typeof window.scheduleHeaderUpdate === 'function') window.scheduleHeaderUpdate();
+                return clamped;
+            }
+
+            try {
+                const saved = localStorage.getItem('sidebarWidth');
+                if (saved) applyWidth(parseFloat(saved));
+            } catch (e) {}
+
+            let dragging = false;
+
+            function onDown(e) {
+                dragging = true;
+                handle.classList.add('resizing');
+                document.body.style.userSelect = 'none';
+                document.body.style.cursor = 'ew-resize';
+                e.preventDefault();
+            }
+
+            function onMove(e) {
+                if (!dragging) return;
+                const rect = container.getBoundingClientRect();
+                applyWidth(rect.right - e.clientX);
+            }
+
+            function onUp() {
+                if (!dragging) return;
+                dragging = false;
+                handle.classList.remove('resizing');
+                document.body.style.userSelect = '';
+                document.body.style.cursor = '';
+                try {
+                    const current = getComputedStyle(container).getPropertyValue('--sidebar-width');
+                    localStorage.setItem('sidebarWidth', parseFloat(current));
+                } catch (e) {}
+            }
+
+            handle.addEventListener('mousedown', onDown);
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+
+            window.addEventListener('resize', function () {
+                if (!container.classList.contains('sidebar-resized')) return;
+                const current = parseFloat(getComputedStyle(container).getPropertyValue('--sidebar-width'));
+                applyWidth(current);
+            });
+        })();
+
+        render();
+        initPanZoom();
+    </script>
+</body>
+</html>
