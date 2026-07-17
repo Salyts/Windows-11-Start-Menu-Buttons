@@ -1732,7 +1732,6 @@
 
         function showModSettings() {
             if (showingModSettings) {
-                // Toggle off
                 showingModSettings = false;
             } else {
                 showingModSettings = true;
@@ -1753,7 +1752,6 @@
             infoModal.classList.remove('show');
         }
 
-        // ─── Migrate v2.1 → v2.2 ───
         function openMigrateModal() {
             document.getElementById('migrateTextArea').value = '';
             document.getElementById('migrateModal').classList.add('show');
@@ -1784,15 +1782,12 @@
             if (!config.buttons || !Array.isArray(config.buttons)) return config;
 
             config.buttons = config.buttons.map(btn => {
-                // v2.1: Action is a plain string → convert to array
                 if (typeof btn.Action === 'string') {
                     btn.Action = btn.Action ? [btn.Action] : [''];
                 } else if (!Array.isArray(btn.Action)) {
                     btn.Action = [''];
                 }
 
-                // v2.1: submenu items have flat structure {name, icon, action (string)}
-                // v2.2: action must be array, and each item needs nested submenu
                 if (btn.submenu && Array.isArray(btn.submenu)) {
                     btn.submenu = btn.submenu
                         .filter(item => item && typeof item === 'object' &&
@@ -1811,7 +1806,6 @@
                     btn.submenu = [];
                 }
 
-                // v2.1: no rightClickSubmenu → add empty
                 if (!btn.rightClickSubmenu) {
                     btn.rightClickSubmenu = [];
                 }
@@ -1822,7 +1816,6 @@
             return config;
         }
 
-        // ─── Import in Text Mode ───
         function openImportTextModal() {
             document.getElementById('importTextArea').value = '';
             document.getElementById('importTextModal').classList.add('show');
@@ -1854,11 +1847,8 @@
             }
         }
 
-        // ─── Textual Mode ───
-
         function showTextualMode() {
             if (isTextualMode) {
-                // Toggle off
                 isTextualMode = false;
             } else {
                 isTextualMode = true;
@@ -1885,7 +1875,6 @@
             }
         }
 
-        // ─── Shared apply imported config logic ───
         function applyImportedConfig(config) {
             if (config.preset_language !== undefined) {
                 modSettings = {
@@ -2016,8 +2005,7 @@
 
         function decodeIcon(iconStr) {
             if (!iconStr) return '&#xE783;';
-            
-            // Ensure it's a string
+
             if (typeof iconStr !== 'string') iconStr = String(iconStr);
 
             if (iconStr.includes('\\u')) {
@@ -2033,7 +2021,6 @@
                 return iconStr;
             }
 
-            // If it looks like a file path (contains . or / or \), show photo icon with lower opacity
             if (iconStr.includes('.') || iconStr.includes('/') || iconStr.includes('\\')) {
                 return '<span style="opacity:0.45;">&#xEB9F;</span>';
             }
@@ -2181,7 +2168,6 @@
                 panX = mouseX - (mouseX - panX) * zoomRatio;
                 panY = mouseY - (mouseY - panY) * zoomRatio;
 
-                // Clamp pan after zoom too
                 const maxPan = 500;
                 panX = Math.max(-maxPan, Math.min(maxPan, panX));
                 panY = Math.max(-maxPan, Math.min(maxPan, panY));
@@ -2860,9 +2846,7 @@
                         console.error('Expected array but got object at line', i);
                         continue;
                     }
-                    
-                    // Check if it's a key:value object item
-                    // Only treat as object if the key is a known YAML object field name
+
                     const colonIdx = content.indexOf(':');
                     const knownKeys = new Set(['name', 'icon', 'action', 'submenu', 'Preset', 'Name', 'Icon', 'Action', 'rightClickSubmenu']);
                     const potentialKey = colonIdx > 0 ? content.substring(0, colonIdx).trim() : '';
@@ -2886,7 +2870,6 @@
                             stack.push({ obj: newObj, indent: indent, key: null });
                         }
                     } else {
-                        // Plain string value
                         let value = content;
                         if ((value.startsWith("'") && value.endsWith("'")) || 
                             (value.startsWith('"') && value.endsWith('"'))) {
@@ -3261,7 +3244,7 @@
             if (!headerEl || !title) return;
 
             const fullTitle = title.getAttribute('data-full-title') || title.textContent;
-            const WIDTH_EPSILON = 1.5; // absorbs canvas-vs-DOM sub-pixel measurement differences
+            const WIDTH_EPSILON = 1.5;
             let measureCanvas = null;
             let separatorVisible = false;
             let lastHeaderWidth = -1;
@@ -3276,10 +3259,6 @@
             function updateHeaderLayout() {
                 title.style.display = '';
                 title.textContent = fullTitle;
-
-                // getBoundingClientRect gives sub-pixel precision matching canvas measureText,
-                // unlike clientWidth which rounds and caused the title to truncate a few
-                // characters even when it actually fit.
                 const availableWidth = title.getBoundingClientRect().width + WIDTH_EPSILON;
                 const style = getComputedStyle(title);
                 const font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
@@ -3305,8 +3284,6 @@
                     const linksRect = headerLinksEl.getBoundingClientRect();
                     const btnsRect = headerBtnsEl.getBoundingClientRect();
                     const gap = btnsRect.left - linksRect.right;
-                    // Hysteresis: different thresholds for showing vs hiding so the line
-                    // doesn't flicker on/off when the gap sits right at the boundary.
                     if (!separatorVisible && gap < 16) {
                         separatorVisible = true;
                     } else if (separatorVisible && gap > 28) {
@@ -3327,8 +3304,6 @@
                 if (rafId) cancelAnimationFrame(rafId);
                 rafId = requestAnimationFrame(function () {
                     rafId = null;
-                    // Skip redundant work if the header's own size hasn't actually changed
-                    // (mutating the title's text can otherwise re-trigger the observer).
                     const currentWidth = headerEl.getBoundingClientRect().width;
                     if (Math.abs(currentWidth - lastHeaderWidth) < 0.5 && lastHeaderWidth !== -1) {
                         return;
