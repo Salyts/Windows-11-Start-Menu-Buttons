@@ -1623,22 +1623,22 @@
 
         const presets = {
             'custom': { name: 'Custom', icon: '\\uE783', action: '' },
-            'settings': { name: 'Settings', icon: '\\uE713', action: 'ms-settings:' },
-            'explorer': { name: 'Explorer', icon: '\\uEC50', action: '~' },
-            'documents': { name: 'Documents', icon: '\\uE8A5', action: '~Documents' },
-            'downloads': { name: 'Downloads', icon: '\\uE896', action: '~Downloads' },
-            'music': { name: 'Music', icon: '\\uEC4F', action: '~Music' },
-            'pictures': { name: 'Pictures', icon: '\\uE91B', action: '~Pictures' },
-            'videos': { name: 'Videos', icon: '\\uE714', action: '~Videos' },
-            'network': { name: 'Network', icon: '\\uEC27', action: 'shell:::{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}' },
-            'personal_folder': { name: 'Personal Folder', icon: '\\uEC25', action: '~' },
-            'shutdown': { name: 'Shut down', icon: '\\uE7E8', action: 'cmd:shutdown /s /f /t 0' },
-            'restart': { name: 'Restart', icon: '\\uE777', action: 'cmd:shutdown /r /f /t 0' },
-            'sign_out': { name: 'Sign out', icon: '\\uF3B1', action: 'cmd:shutdown /l' },
-            'sleep': { name: 'Sleep', icon: '\\uE708', action: 'press:0x5F' },
-            'hibernate': { name: 'Hibernate', icon: '\\uE823', action: 'press:Win+X;U;H' },
+            'settings': { name: 'Settings', icon: '\\uE713', action: '' },
+            'explorer': { name: 'Explorer', icon: '\\uEC50', action: '' },
+            'documents': { name: 'Documents', icon: '\\uE8A5', action: '' },
+            'downloads': { name: 'Downloads', icon: '\\uE896', action: '' },
+            'music': { name: 'Music', icon: '\\uEC4F', action: '' },
+            'pictures': { name: 'Pictures', icon: '\\uE91B', action: '' },
+            'videos': { name: 'Videos', icon: '\\uE714', action: '' },
+            'network': { name: 'Network', icon: '\\uEC27', action: '' },
+            'personal_folder': { name: 'Personal Folder', icon: '\\uEC25', action: '' },
+            'shutdown': { name: 'Shut down', icon: '\\uE7E8', action: '' },
+            'restart': { name: 'Restart', icon: '\\uE777', action: '' },
+            'sign_out': { name: 'Sign out', icon: '\\uF3B1', action: '' },
+            'sleep': { name: 'Sleep', icon: '\\uE708', action: '' },
+            'hibernate': { name: 'Hibernate', icon: '\\uE823', action: '' },
             'lock': { name: 'Lock', icon: '\\uE72E', action: 'press:Win+L' },
-            'menu_shutdown': { name: 'Power Menu', icon: '\\uE7E8', action: 'press:Win+X;U' }
+            'menu_shutdown': { name: 'Power Menu', icon: '\\uE7E8', action: '' }
         };
 
         function addButton() {
@@ -1966,9 +1966,9 @@
                 };
 
                 buttons = [
-                    { preset: 'menu_shutdown', name: '', icon: '', action: ['press:Win+X;U'], submenu: [], rightClickSubmenu: [] },
-                    { preset: 'settings', name: '', icon: '', action: ['ms-settings:'], submenu: [], rightClickSubmenu: [] },
-                    { preset: 'explorer', name: '', icon: '', action: ['~'], submenu: [], rightClickSubmenu: [] }
+                    { preset: 'menu_shutdown', name: '', icon: '', action: [''], submenu: [], rightClickSubmenu: [] },
+                    { preset: 'settings', name: '', icon: '', action: [''], submenu: [], rightClickSubmenu: [] },
+                    { preset: 'explorer', name: '', icon: '', action: [''], submenu: [], rightClickSubmenu: [] }
                 ];
 
                 selectedButtonIndex = null;
