@@ -1340,6 +1340,26 @@
         </div>
     </div>
 
+    <!-- Textual Mode Unsaved Changes Dialog -->
+    <div class="modal-overlay" id="textualUnsavedDialog" style="z-index:20000;">
+        <div class="modal" style="max-width:420px;">
+            <div class="modal-header">
+                <div class="modal-title">Unsaved Changes</div>
+            </div>
+            <div class="modal-body" style="padding:24px;">
+                <div style="font-size:14px; color:#e0e0e0; line-height:1.6;">
+                    You have unsaved changes in Textual Mode.<br>
+                    <span style="color:#888; font-size:13px;">Do you want to apply them before leaving?</span>
+                </div>
+            </div>
+            <div class="modal-footer" style="gap:8px;">
+                <button class="modal-btn modal-btn-cancel" onclick="textualUnsavedCancel()">Cancel</button>
+                <button class="modal-btn modal-btn-cancel" onclick="textualUnsavedExitWithout()" style="color:#e0a000;">Exit without saving</button>
+                <button class="modal-btn modal-btn-select" onclick="textualUnsavedSaveAndExit()">Apply & Exit</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Action Info Modal -->
     <div class="modal-overlay" id="actionInfoModal">
         <div class="modal" style="max-width:640px;">
@@ -1605,6 +1625,7 @@
         let selectedMenuItem = null;
         let showingModSettings = true;
         let isTextualMode = false;
+        let textualModeChanged = false;
         let contextMenuState = null;
         let draggedItem = null;
         let rightClickActive = {};
@@ -1637,7 +1658,7 @@
             'sign_out': { name: 'Sign out', icon: '\\uF3B1', action: '' },
             'sleep': { name: 'Sleep', icon: '\\uE708', action: '' },
             'hibernate': { name: 'Hibernate', icon: '\\uE823', action: '' },
-            'lock': { name: 'Lock', icon: '\\uE72E', action: '' },
+            'lock': { name: 'Lock', icon: '\\uE72E', action: 'press:Win+L' },
             'menu_shutdown': { name: 'Power Menu', icon: '\\uE7E8', action: '' }
         };
 
@@ -1722,24 +1743,30 @@
         }
 
         function selectButton(index) {
-            rightClickActive = {};
-            
-            selectedButtonIndex = index;
-            selectedMenuItem = null;
-            showingModSettings = false;
-            render();
+            checkTextualUnsaved(() => {
+                isTextualMode = false;
+                textualModeChanged = false;
+                rightClickActive = {};
+                selectedButtonIndex = index;
+                selectedMenuItem = null;
+                showingModSettings = false;
+                render();
+            });
         }
 
         function showModSettings() {
-            if (showingModSettings) {
-                showingModSettings = false;
-            } else {
-                showingModSettings = true;
+            checkTextualUnsaved(() => {
                 isTextualMode = false;
-                selectedButtonIndex = null;
-                selectedMenuItem = null;
-            }
-            render();
+                textualModeChanged = false;
+                if (showingModSettings) {
+                    showingModSettings = false;
+                } else {
+                    showingModSettings = true;
+                    selectedButtonIndex = null;
+                    selectedMenuItem = null;
+                }
+                render();
+            });
         }
 
         function toggleInfoMenu() {
@@ -1849,19 +1876,67 @@
 
         function showTextualMode() {
             if (isTextualMode) {
-                isTextualMode = false;
+                checkTextualUnsaved(() => {
+                    isTextualMode = false;
+                    textualModeChanged = false;
+                    render();
+                });
             } else {
                 isTextualMode = true;
+                textualModeChanged = false;
                 showingModSettings = false;
                 selectedButtonIndex = null;
                 selectedMenuItem = null;
+                render();
             }
-            render();
         }
 
         function exitTextualMode() {
             isTextualMode = false;
+            textualModeChanged = false;
             render();
+        }
+
+        function checkTextualUnsaved(onConfirm) {
+            if (!isTextualMode || !textualModeChanged) {
+                onConfirm();
+                return;
+            }
+            openTextualUnsavedDialog(onConfirm);
+        }
+
+        function openTextualUnsavedDialog(onConfirm) {
+            window._textualUnsavedCallback = onConfirm;
+            document.getElementById('textualUnsavedDialog').classList.add('show');
+        }
+
+        function textualUnsavedSaveAndExit() {
+            const ta = document.getElementById('textualModeArea');
+            if (ta) {
+                try {
+                    let config;
+                    try { config = JSON.parse(ta.value); }
+                    catch { config = parseSimpleYAML(ta.value); }
+                    applyImportedConfig(config);
+                } catch(err) {
+                    alert('Error parsing config: ' + err.message);
+                    return;
+                }
+            }
+            document.getElementById('textualUnsavedDialog').classList.remove('show');
+            textualModeChanged = false;
+            if (window._textualUnsavedCallback) window._textualUnsavedCallback();
+        }
+
+        function textualUnsavedExitWithout() {
+            document.getElementById('textualUnsavedDialog').classList.remove('show');
+            textualModeChanged = false;
+            if (window._textualUnsavedCallback) window._textualUnsavedCallback();
+        }
+
+        function textualUnsavedCancel() {
+            document.getElementById('textualUnsavedDialog').classList.remove('show');
+            window._textualUnsavedCallback = null;
         }
 
         function applyTextualEdit(textarea) {
@@ -1870,6 +1945,7 @@
                 try { config = JSON.parse(textarea.value); }
                 catch { config = parseSimpleYAML(textarea.value); }
                 applyImportedConfig(config);
+                textualModeChanged = false;
             } catch(err) {
                 alert('Error parsing config: ' + err.message);
             }
@@ -2266,10 +2342,9 @@
                             font-family:'Consolas',monospace; font-size:12px;
                             padding:10px; resize:vertical; outline:none;
                             line-height:1.5;
-                        ">${yaml.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+                        " oninput="textualModeChanged = true;">${yaml.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
                         <div style="display:flex; gap:8px;">
                             <button class="btn btn-primary" style="flex:1;" onclick="applyTextualEdit(document.getElementById('textualModeArea'))">Apply</button>
-                            <button class="btn btn-danger" style="flex:1;" onclick="exitTextualMode()">Exit</button>
                         </div>
                     </div>
                 `;
@@ -3146,6 +3221,19 @@
             event.currentTarget.classList.remove('drag-over');
         }
 
+        function stripDeepSubmenus(items, currentLevel) {
+            if (!items || !Array.isArray(items)) return [];
+            return items.map(item => {
+                const cleaned = Object.assign({}, item);
+                if (currentLevel >= max_submenu_levels) {
+                    cleaned.submenu = [];
+                } else if (cleaned.submenu && cleaned.submenu.length > 0) {
+                    cleaned.submenu = stripDeepSubmenus(cleaned.submenu, currentLevel + 1);
+                }
+                return cleaned;
+            });
+        }
+
         function handleMenuDrop(event, buttonIndex, targetPath, isRightClick = false) {
             event.preventDefault();
             event.stopPropagation();
@@ -3221,6 +3309,20 @@
                             isRightClick: isRightClick
                         };
                     }
+
+                    const droppedAtLevel = targetPath.length;
+                    if (droppedAtLevel >= max_submenu_levels - 1) {
+                        const droppedItem = targetParent[targetIndex];
+                        if (droppedItem) {
+                            droppedItem.submenu = [];
+                        }
+                    } else {
+                        const droppedItem = targetParent[targetIndex];
+                        if (droppedItem && droppedItem.submenu) {
+                            droppedItem.submenu = stripDeepSubmenus(droppedItem.submenu, droppedAtLevel + 2);
+                        }
+                    }
+
                     render();
                 }
             }
