@@ -166,6 +166,8 @@ If you encounter any issues or have a feature suggestion, please open a report o
   $options:
     - en: English
     - ru: Russian (Русский)
+    - zh_Hans: Simplified Chinese (简体中文)
+    - zh_Hant: Traditional Chinese (繁体中文)
 
 - alignment: right
   $name: Button alignment
@@ -376,6 +378,8 @@ struct Settings {
     int                      containerMarginLeft  = -16;
     int                      containerMarginRight = -16;
     bool                     langRussian         = false;
+    bool                     langSChinese        = false;
+    bool                     langTChinese        = false;
 };
 
 struct ActionItem {
@@ -817,27 +821,29 @@ struct PresetDef {
     const wchar_t* key;
     const wchar_t* nameEn;
     const wchar_t* nameRu;
+    const wchar_t* nameZh_Hans;
+    const wchar_t* nameZh_Hant;
     const wchar_t* icon;
     const wchar_t* action;
 };
 
 static const PresetDef kPresets[] = {
-    { L"settings",        L"Settings",        L"Параметры",         L"\uE713", L"__preset:settings"        },
-    { L"explorer",        L"Explorer",        L"Проводник",         L"\uEC50", L"__preset:explorer"        },
-    { L"documents",       L"Documents",       L"Документы",         L"\uE8A5", L"__preset:documents"       },
-    { L"downloads",       L"Downloads",       L"Загрузки",          L"\uE896", L"__preset:downloads"       },
-    { L"music",           L"Music",           L"Музыка",            L"\uEC4F", L"__preset:music"           },
-    { L"pictures",        L"Pictures",        L"Изображения",       L"\uE91B", L"__preset:pictures"        },
-    { L"videos",          L"Videos",          L"Видео",             L"\uE714", L"__preset:videos"          },
-    { L"network",         L"Network",         L"Сеть",              L"\uEC27", L"__preset:network"         },
-    { L"personal_folder", L"Personal Folder", L"Личная папка",      L"\uEC25", L"__preset:personal_folder" },
-    { L"shutdown",        L"Shut down",       L"Завершение работы", L"\uE7E8", L"__preset:shutdown"        },
-    { L"restart",         L"Restart",         L"Перезагрузка",      L"\uE777", L"__preset:restart"         },
-    { L"sign_out",        L"Sign out",        L"Выйти",             L"\uF3B1", L"__preset:sign_out"        },
-    { L"sleep",           L"Sleep",           L"Спящий режим",      L"\uE708", L"__preset:sleep"           },
-    { L"hibernate",       L"Hibernate",       L"Гибернация",        L"\uE823", L"__preset:hibernate"       },
-    { L"lock",            L"Lock",            L"Блокировка",        L"\uE72E", L"__preset:lock"            },
-    { L"menu_shutdown",   L"Power",           L"Выключение",        L"\uE7E8", nullptr                     },
+    { L"settings",        L"Settings",        L"Параметры",         L"设置",           L"設定",       L"\uE713", L"__preset:settings"        },
+    { L"explorer",        L"Explorer",        L"Проводник",         L"文件资源管理器", L"檔案總管",   L"\uEC50", L"__preset:explorer"        },
+    { L"documents",       L"Documents",       L"Документы",         L"文档",           L"文件",       L"\uE8A5", L"__preset:documents"       },
+    { L"downloads",       L"Downloads",       L"Загрузки",          L"下载",           L"下載",       L"\uE896", L"__preset:downloads"       },
+    { L"music",           L"Music",           L"Музыка",            L"音乐",           L"音樂",       L"\uEC4F", L"__preset:music"           },
+    { L"pictures",        L"Pictures",        L"Изображения",       L"图片",           L"圖片",       L"\uE91B", L"__preset:pictures"        },
+    { L"videos",          L"Videos",          L"Видео",             L"视频",           L"影片",       L"\uE714", L"__preset:videos"          },
+    { L"network",         L"Network",         L"Сеть",              L"网络",           L"網路",       L"\uEC27", L"__preset:network"         },
+    { L"personal_folder", L"Personal Folder", L"Личная папка",      L"个人文件夹",     L"個人資料夾", L"\uEC25", L"__preset:personal_folder" },
+    { L"shutdown",        L"Shut down",       L"Завершение работы", L"关机",           L"關機",       L"\uE7E8", L"__preset:shutdown"        },
+    { L"restart",         L"Restart",         L"Перезагрузка",      L"重启",           L"重新啟動",   L"\uE777", L"__preset:restart"         },
+    { L"sign_out",        L"Sign out",        L"Выйти",             L"注销",           L"注销",       L"\uF3B1", L"__preset:sign_out"        },
+    { L"sleep",           L"Sleep",           L"Спящий режим",      L"睡眠",           L"睡眠",       L"\uE708", L"__preset:sleep"           },
+    { L"hibernate",       L"Hibernate",       L"Гибернация",        L"休眠",           L"休眠",       L"\uE823", L"__preset:hibernate"       },
+    { L"lock",            L"Lock",            L"Блокировка",        L"锁定",           L"鎖定",       L"\uE72E", L"__preset:lock"            },
+    { L"menu_shutdown",   L"Power",           L"Выключение",        L"电源",           L"開啟/關閉",  L"\uE7E8", nullptr                     },
 };
 static constexpr int kPresetCount = static_cast<int>(std::size(kPresets));
 
@@ -850,8 +856,11 @@ static const PresetDef* FindPreset(const std::wstring& key) {
     return nullptr;
 }
 
-static std::wstring PresetName(const PresetDef& pd, bool russian) {
-    return russian ? pd.nameRu : pd.nameEn;
+static std::wstring PresetName(const PresetDef& pd, bool russian, bool schinese, bool tchinese) {
+    return russian ? pd.nameRu : 
+           schinese ? pd.nameZh_Hans :
+           tchinese ? pd.nameZh_Hant :
+                     pd.nameEn;
 }
 
 static bool GetKnownFolderPath(const wchar_t* id, std::wstring& out) {
@@ -1395,6 +1404,8 @@ static void LoadSettings() {
 
     PCWSTR lang = Wh_GetStringSetting(L"preset_language");
     s.langRussian = lang && _wcsicmp(lang, L"ru") == 0;
+    s.langSChinese = lang && _wcsicmp(lang, L"zh_Hans") == 0;
+    s.langTChinese = lang && _wcsicmp(lang, L"zh_Hant") == 0;
     SafeFreeString(lang);
 
     PCWSTR align = Wh_GetStringSetting(L"alignment");
@@ -1424,7 +1435,7 @@ static void LoadSettings() {
     g_settings = s;
 
     Wh_Log(L"Settings loaded: lang=%s align=%d acct=%d invertIcons=%d",
-           s.langRussian ? L"ru" : L"en",
+           s.langRussian ? L"ru" : (s.langSChinese ? L"zh_Hans" : (s.langTChinese ? L"zh_Hant" : L"en")),
            static_cast<int>(s.alignment),
            static_cast<int>(s.accountButton),
            static_cast<int>(s.invertIconsSubmenus));
@@ -1496,7 +1507,9 @@ static std::vector<ActionItem> LoadRightClickSubmenu(int btnIdx) {
 
 static void BuildButtons() {
     bool ruLang;
-    { std::lock_guard<std::mutex> lk(g_settingsMutex); ruLang = g_settings.langRussian; }
+    bool zh_HansLang;
+    bool zh_HantLang;
+    { std::lock_guard<std::mutex> lk(g_settingsMutex); ruLang = g_settings.langRussian; zh_HansLang = g_settings.langSChinese; zh_HantLang = g_settings.langTChinese; }
 
     std::vector<ActionItem> newButtons;
 
@@ -1561,7 +1574,7 @@ static void BuildButtons() {
         ActionItem item;
 
         if (pd) {
-            item.name = Trim(rawName).empty() ? PresetName(*pd, ruLang) : Trim(rawName);
+            item.name = Trim(rawName).empty() ? PresetName(*pd, ruLang, zh_HansLang, zh_HantLang) : Trim(rawName);
             item.icon = Trim(rawIcon).empty()  ? pd->icon               : Trim(rawIcon);
 
             if (pd->action) {
@@ -1571,7 +1584,7 @@ static void BuildButtons() {
                     const PresetDef* sp = FindPreset(key);
                     if (!sp) continue;
                     ActionItem si;
-                    si.name   = PresetName(*sp, ruLang);
+                    si.name   = PresetName(*sp, ruLang, zh_HansLang, zh_HantLang);
                     si.icon   = sp->icon;
                     si.action = sp->action;
                     item.submenu.push_back(std::move(si));

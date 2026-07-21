@@ -2353,6 +2353,8 @@
                         <select class="form-select" id="preset_language" onchange="updateModSetting('preset_language', this.value)">
                             <option value="en" ${modSettings.preset_language === 'en' ? 'selected' : ''}>English</option>
                             <option value="ru" ${modSettings.preset_language === 'ru' ? 'selected' : ''}>Russian (Русский)</option>
+                            <option value="ru" ${modSettings.preset_language === 'zh_Hans' ? 'selected' : ''}>Simplified Chinese (简体中文)</option>
+                            <option value="ru" ${modSettings.preset_language === 'zh_Hant' ? 'selected' : ''}>Traditional Chinese (繁体中文)</option>
                         </select>
                         <span class="form-hint">Language for preset button tooltip names</span>
                     </div>
