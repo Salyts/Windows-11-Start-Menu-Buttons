@@ -291,6 +291,49 @@
             transform: scale(0.95);
         }
 
+        .menu-separator {
+            height: 48px;
+            min-width: 18px;
+            padding: 0 4px;
+            background: transparent;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .menu-separator:hover {
+            background: #1f1f1f;
+            border-color: #3a3a3a;
+        }
+
+        .menu-separator.selected {
+            background: rgba(0, 95, 184, 0.25);
+            border-color: #0078d4;
+        }
+
+        .menu-separator.dragging {
+            opacity: 0.4;
+            transform: scale(0.95);
+        }
+
+        .menu-separator.drag-over {
+            background: rgba(0, 120, 212, 0.35);
+            border-color: #106ebe;
+            transform: scale(1.05);
+        }
+
+        .menu-separator-line {
+            width: 2px;
+            border-radius: 1px;
+            background: rgba(255, 255, 255, 0.28);
+            pointer-events: none;
+        }
+
         .add-button {
             width: 32px;
             height: 32px;
@@ -725,6 +768,56 @@
         .context-menu-add:hover {
             background: #3a3a3a;
             color: #e0e0e0;
+        }
+
+        .context-menu-footer {
+            display: flex;
+            gap: 4px;
+            margin-top: 2px;
+        }
+
+        .context-menu-footer .context-menu-add {
+            flex: 1;
+            padding: 6px 8px;
+        }
+
+        .context-menu-separator {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+            user-select: none;
+        }
+
+        .context-menu-separator:hover {
+            background: #3a3a3a;
+        }
+
+        .context-menu-separator.selected {
+            background: #0078d4;
+        }
+
+        .context-menu-separator.dragging {
+            opacity: 0.4;
+            background: #1f1f1f;
+        }
+
+        .context-menu-separator.drag-over {
+            background: #0078d4;
+            border-left: 3px solid #106ebe;
+        }
+
+        .context-menu-separator-line {
+            width: 100%;
+            height: 1px;
+            background: #4a4a4a;
+            pointer-events: none;
+        }
+
+        .context-menu-separator.selected .context-menu-separator-line {
+            background: rgba(255, 255, 255, 0.9);
         }
 
         .submenu-indicator {
@@ -1630,12 +1723,15 @@
             invert_icons_submenus: false,
             close_start_menu: true,
             button_spacing: 0,
+            separator_width: 12,
+            separator_height: 20,
             container_margin_left: -16,
             container_margin_right: -16
         };
 
         const presets = {
             'custom': { name: 'Custom', icon: '\\uE783', action: '' },
+            'separator': { name: 'Separator', icon: '', action: '' },
             'settings': { name: 'Settings', icon: '\\uE713', action: '' },
             'explorer': { name: 'Explorer', icon: '\\uEC50', action: '' },
             'documents': { name: 'Documents', icon: '\\uE8A5', action: '' },
@@ -1945,6 +2041,8 @@
 
         function applyImportedConfig(config) {
             if (config.preset_language !== undefined) {
+                const parsedSepW = parseInt(config.separator_width);
+                const parsedSepH = parseInt(config.separator_height);
                 modSettings = {
                     preset_language: config.preset_language || 'en',
                     alignment: config.alignment || 'right',
@@ -1953,11 +2051,16 @@
                     invert_icons_submenus: config.invert_icons_submenus === 1 || config.invert_icons_submenus === true,
                     close_start_menu: config.close_start_menu === 1 || config.close_start_menu === true,
                     button_spacing: parseInt(config.button_spacing) || 0,
+                    separator_width: !isNaN(parsedSepW) && parsedSepW > 0 ? Math.min(128, parsedSepW) : 12,
+                    separator_height: !isNaN(parsedSepH) && parsedSepH > 0 ? Math.min(40, parsedSepH) : 20,
                     container_margin_left: parseInt(config.container_margin_left) || -16,
                     container_margin_right: parseInt(config.container_margin_right) || -16
                 };
             } else if (config.modSettings) {
-                modSettings = config.modSettings;
+                modSettings = Object.assign({
+                    separator_width: 12,
+                    separator_height: 20
+                }, config.modSettings);
             }
 
             function convertSubmenu(items) {
@@ -2029,6 +2132,8 @@
                     invert_icons_submenus: false,
                     close_start_menu: true,
                     button_spacing: 0,
+                    separator_width: 12,
+                    separator_height: 20,
                     container_margin_left: -16,
                     container_margin_right: -16
                 };
@@ -2096,10 +2201,74 @@
             return iconStr;
         }
 
+        function isSeparatorToken(str) {
+            const t = String(str || '').trim();
+            return t === '-' || t === '--' || t === '---';
+        }
+
+        function isButtonSeparator(btn) {
+            if (!btn) return false;
+            if (btn.preset === 'separator') return true;
+            const isCustom = !btn.preset || btn.preset === 'custom';
+            const hasAction = Array.isArray(btn.action) && btn.action.some(a => String(a || '').trim() !== '');
+            const hasSub = (btn.submenu && btn.submenu.length > 0) || (btn.rightClickSubmenu && btn.rightClickSubmenu.length > 0);
+            return isCustom && isSeparatorToken(btn.name) && !hasAction && !hasSub;
+        }
+
+        function isMenuItemSeparator(item) {
+            if (!item) return false;
+            const trimmed = String(item.name || '').trim();
+            const isTok = isSeparatorToken(trimmed) || trimmed.toLowerCase() === 'separator';
+            const hasAction = Array.isArray(item.action) && item.action.some(a => String(a || '').trim() !== '');
+            const hasSub = item.submenu && item.submenu.length > 0;
+            return isTok && !hasAction && !hasSub;
+        }
+
+        function parseSeparatorCssColor(raw) {
+            const s = String(raw || '').trim();
+            if (/^#[0-9A-Fa-f]{6}$/.test(s)) return s;
+            if (/^#[0-9A-Fa-f]{8}$/.test(s)) {
+                const a = parseInt(s.slice(1, 3), 16) / 255;
+                const r = parseInt(s.slice(3, 5), 16);
+                const g = parseInt(s.slice(5, 7), 16);
+                const b = parseInt(s.slice(7, 9), 16);
+                return `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
+            }
+            return 'rgba(255, 255, 255, 0.28)';
+        }
+
         function renderButtons() {
             const mainContent = document.getElementById('main-content');
             
             const buttonsHTML = buttons.map((btn, index) => {
+                const isSelected = selectedButtonIndex === index;
+
+                if (isButtonSeparator(btn)) {
+                    const slotW = Math.max(16, Math.min(128, (parseInt(modSettings.separator_width) || 12) + 8));
+                    const lineH = Math.max(4, Math.min(40, parseInt(modSettings.separator_height) || 20));
+                    const lineColor = parseSeparatorCssColor(btn.icon);
+                    return `
+                        <div style="position: relative; display: inline-block;">
+                            <div
+                                class="menu-separator ${isSelected ? 'selected' : ''}"
+                                style="width: ${slotW}px;"
+                                onclick="selectButton(${index})"
+                                oncontextmenu="selectButton(${index}); event.preventDefault(); return false;"
+                                onauxclick="handleButtonMiddleClick(event, ${index})"
+                                draggable="true"
+                                ondragstart="handleButtonDragStart(event, ${index})"
+                                ondragover="handleButtonDragOver(event)"
+                                ondragleave="handleButtonDragLeave(event)"
+                                ondrop="handleButtonDrop(event, ${index})"
+                                ondragend="handleButtonDragEnd(event)"
+                                title="Separator"
+                            >
+                                <span class="menu-separator-line" style="height: ${lineH}px; background: ${lineColor};"></span>
+                            </div>
+                        </div>
+                    `;
+                }
+
                 let displayIcon = btn.icon;
                 if (!displayIcon && btn.preset && presets[btn.preset]) {
                     displayIcon = presets[btn.preset].icon;
@@ -2111,7 +2280,6 @@
                     displayName = presets[btn.preset].name;
                 }
                 
-                const isSelected = selectedButtonIndex === index;
                 const isCustomPreset = !btn.preset || btn.preset === 'custom';
                 const isLeftMenuItemSelected = selectedMenuItem && 
                                               selectedMenuItem.buttonIndex === index && 
@@ -2422,6 +2590,20 @@
                     </div>
 
                     <div class="form-group">
+                        <label class="form-label">Separator Slot Width (px)</label>
+                        <input type="number" min="1" max="128" class="form-input" id="separator_width" value="${modSettings.separator_width}" 
+                            oninput="updateModSetting('separator_width', Math.max(1, Math.min(128, parseInt(this.value) || 12))); renderButtons();" />
+                        <span class="form-hint">Total horizontal space occupied by a bottom-bar separator (min 1 px)</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Separator Height (px)</label>
+                        <input type="number" min="1" max="40" class="form-input" id="separator_height" value="${modSettings.separator_height}" 
+                            oninput="updateModSetting('separator_height', Math.max(1, Math.min(40, parseInt(this.value) || 20))); renderButtons();" />
+                        <span class="form-hint">Height of the vertical separator line (1-40 px)</span>
+                    </div>
+
+                    <div class="form-group">
                         <label class="form-label">Container Left Margin (px)</label>
                         <input type="number" class="form-input" id="container_margin_left" value="${modSettings.container_margin_left}" 
                             oninput="updateModSetting('container_margin_left', parseInt(this.value))" />
@@ -2484,9 +2666,9 @@
                             class="form-input" 
                             value="${menuItem.name || ''}"
                             oninput="updateMenuItem('name', this.value)"
-                            placeholder="Menu item name"
+                            placeholder="Menu item name (or --- for separator)"
                         />
-                        <span class="form-hint">Displayed in menu</span>
+                        <span class="form-hint">Displayed in menu. Enter <code>---</code> (or <code>-</code>) with empty action for a horizontal separator.</span>
                     </div>
 
                     <div class="form-group">
@@ -2533,6 +2715,7 @@
 
             const btn = buttons[selectedButtonIndex];
             const hasSubmenu = btn.submenu && btn.submenu.length > 0;
+            const isSeparatorPreset = btn.preset === 'separator';
             const isCustomPreset = !btn.preset || btn.preset === 'custom';
 
             if (!Array.isArray(btn.action)) {
@@ -2550,6 +2733,42 @@
             const presetOptions = Object.keys(presets).map(key => 
                 `<option value="${key}" ${btn.preset === key ? 'selected' : ''}>${presets[key].name}</option>`
             ).join('');
+
+            if (isSeparatorPreset) {
+                sidebarContent.innerHTML = `
+                    <div class="form-group">
+                        <label class="form-label">Preset</label>
+                        <select class="form-select" onchange="updateButton('preset', this.value)">
+                            ${presetOptions}
+                        </select>
+                        <span class="form-hint">Select a preset, Separator, or Custom</span>
+                    </div>
+
+                    <div class="form-group">
+                        <div style="padding: 12px; background: #2a2a2a; border-radius: 6px; border-left: 3px solid #0078d4;">
+                            <div style="font-size: 13px; color: #e0e0e0; margin-bottom: 4px;">ℹ️ Vertical Separator</div>
+                            <div style="font-size: 12px; color: #888;">Non-clickable vertical divider between buttons. Width and height can be adjusted in Mod Settings.</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Custom Color (Optional)</label>
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            value="${btn.icon || ''}"
+                            oninput="updateButton('icon', this.value)"
+                            placeholder="#40FFFFFF or #888888 (empty = auto theme)"
+                        />
+                        <span class="form-hint">Leave empty for automatic Windows 11 Light/Dark theme color, or specify <code>#RRGGBB</code> / <code>#AARRGGBB</code>.</span>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-danger" onclick="deleteButton(${selectedButtonIndex})">Delete</button>
+                    </div>
+                `;
+                return;
+            }
 
             const actionItemsHTML = btn.action.map((act, idx) => `
                 <div class="action-item">
@@ -2792,6 +3011,8 @@
                 invert_icons_submenus: modSettings.invert_icons_submenus ? 1 : 0,
                 close_start_menu: modSettings.close_start_menu ? 1 : 0,
                 button_spacing: modSettings.button_spacing,
+                separator_width: modSettings.separator_width,
+                separator_height: modSettings.separator_height,
                 container_margin_left: modSettings.container_margin_left,
                 container_margin_right: modSettings.container_margin_right,
                 buttons: buttons.map(btn => ({
@@ -2812,6 +3033,8 @@
             output += `invert_icons_submenus: ${config.invert_icons_submenus}\n`;
             output += `close_start_menu: ${config.close_start_menu}\n`;
             output += `button_spacing: ${config.button_spacing}\n`;
+            output += `separator_width: ${config.separator_width}\n`;
+            output += `separator_height: ${config.separator_height}\n`;
             output += `container_margin_left: ${config.container_margin_left}\n`;
             output += `container_margin_right: ${config.container_margin_right}\n`;
             output += `buttons:\n`;
@@ -3001,14 +3224,33 @@
             let html = '';
             
             items.forEach((item, index) => {
-                const iconCode = decodeIcon(item.icon || '\\uE783');
                 const itemPath = [...path, index];
-                const hasSubmenu = item.submenu && item.submenu.length > 0;
                 const pathStr = JSON.stringify(itemPath).replace(/"/g, '&quot;');
                 const isSelected = selectedMenuItem && 
                                  selectedMenuItem.buttonIndex === buttonIndex && 
                                  selectedMenuItem.isRightClick === isRightClick &&
                                  JSON.stringify(selectedMenuItem.path) === JSON.stringify(itemPath);
+
+                if (isMenuItemSeparator(item)) {
+                    html += `
+                        <div class="context-menu-separator ${isSelected ? 'selected' : ''}"
+                             draggable="true"
+                             ondragstart="handleMenuDragStart(event, ${buttonIndex}, ${pathStr}, ${isRightClick})"
+                             ondragover="handleMenuDragOver(event)"
+                             ondragleave="handleMenuDragLeave(event)"
+                             ondrop="handleMenuDrop(event, ${buttonIndex}, ${pathStr}, ${isRightClick})"
+                             ondragend="handleDragEnd(event)"
+                             onclick="selectMenuItem(${buttonIndex}, ${pathStr}, ${isRightClick}); event.stopPropagation();"
+                             onauxclick="handleMenuItemMiddleClick(event, ${buttonIndex}, ${pathStr}, ${isRightClick})"
+                             title="Separator (click to edit, middle-click to delete)">
+                            <span class="context-menu-separator-line"></span>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const iconCode = decodeIcon(item.icon || '\\uE783');
+                const hasSubmenu = item.submenu && item.submenu.length > 0;
                 
                 let showSubmenu = false;
                 if (hasSubmenu && selectedMenuItem && 
@@ -3055,15 +3297,47 @@
             });
 
             if (level < max_submenu_levels) {
+                const parentPathStr = JSON.stringify(path).replace(/"/g, '&quot;');
                 html += `
-                    <div class="context-menu-add" onclick="addMenuItem(${buttonIndex}, ${JSON.stringify(path).replace(/"/g, '&quot;')}, ${isRightClick}); event.stopPropagation();">
-                        <span>+</span>
-                        <span>Add Item</span>
+                    <div class="context-menu-footer">
+                        <div class="context-menu-add" onclick="addMenuItem(${buttonIndex}, ${parentPathStr}, ${isRightClick}); event.stopPropagation();">
+                            <span>+</span>
+                            <span>Add Item</span>
+                        </div>
+                        <div class="context-menu-add" onclick="addMenuSeparator(${buttonIndex}, ${parentPathStr}, ${isRightClick}); event.stopPropagation();" title="Add horizontal separator">
+                            <span>―</span>
+                            <span>Separator</span>
+                        </div>
                     </div>
                 `;
             }
 
             return html;
+        }
+
+        function addMenuSeparator(buttonIndex, path, isRightClick = false) {
+            const menuType = isRightClick ? 'rightClickSubmenu' : 'submenu';
+            const newSep = {
+                name: '---',
+                icon: '',
+                action: [''],
+                submenu: []
+            };
+
+            if (!buttons[buttonIndex][menuType]) {
+                buttons[buttonIndex][menuType] = [];
+            }
+
+            let target = buttons[buttonIndex][menuType];
+            for (let i = 0; i < path.length; i++) {
+                if (!target[path[i]].submenu) {
+                    target[path[i]].submenu = [];
+                }
+                target = target[path[i]].submenu;
+            }
+
+            target.push(newSep);
+            render();
         }
 
         function addMenuItem(buttonIndex, path, isRightClick = false) {

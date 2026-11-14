@@ -62,12 +62,19 @@ Alternatively, use the **[Configurator's Migrate tool](https://salyts.github.io/
 
 | Field | Description |
 |---|---|
-| **Preset** | Ready-made button template. Set to `Custom` to define your own. |
+| **Preset** | Ready-made button template, `Separator` for a vertical divider, or `Custom` to define your own. |
 | **Name** | Tooltip shown on hover. Leave empty on presets to use their default name. |
-| **Icon** | [Segoe Fluent Icons](https://learn.microsoft.com/en-us/windows/apps/design/iconography/segoe-fluent-icons-font) glyph, image file path, or `.exe`/`.dll` path to extract icon. |
+| **Icon** | [Segoe Fluent Icons](https://learn.microsoft.com/en-us/windows/apps/design/iconography/segoe-fluent-icons-font) glyph, image file path, `.exe`/`.dll` path to extract icon, or optional hex color (`#RRGGBB` / `#AARRGGBB`) when `Preset = Separator`. |
 | **Action** | Action for Custom preset only. Supports multiple commands. See formats below. |
-| **Left-click submenu** | Flyout menu opened on left-click (up to 3 levels deep). |
-| **Right-click submenu** | Separate flyout menu opened on right-click (up to 3 levels deep). |
+| **Left-click submenu** | Flyout menu opened on left-click (up to 3 levels deep). Enter `---` (or `-`) as Item name for a horizontal separator. |
+| **Right-click submenu** | Separate flyout menu opened on right-click (up to 3 levels deep). Enter `---` (or `-`) as Item name for a horizontal separator. |
+
+---
+
+## Separators
+
+- **Bottom bar (vertical separator):** Add a button entry and set **Preset = Separator** (or set **Preset = Custom** with **Name = `---`** and leave Action empty). Leave **Icon** empty for automatic Windows 11 Light/Dark theme color, or enter `#RRGGBB` / `#AARRGGBB` (e.g. `#40FFFFFF`) for a custom color. Adjust **Separator slot width** and **Separator height** in general settings.
+- **Submenus (horizontal separator):** Add a submenu item with **Item name = `---`** (or `-`) and leave its action empty.
 
 ---
 
